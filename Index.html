@@ -3,132 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eco Grid: BIP Challenge</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Poppins:wght@400;700;800&display=swap" rel="stylesheet">
+    <title>Eco Grid: Tycoon Remastered</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
     <link rel="stylesheet" href="style.css">
     <script src="script.js" defer></script>
-
-
 </head>
 <body>
 
-    <div class="game-container" id="game-main">
+    <div class="bg-gradient"></div>
+
+    <div class="app-wrapper">
         
-        <div id="start-screen" class="overlay">
-            <div class="title">⚡ BIP 2025: ECO GRID CHALLENGE ⚡</div>
-            <div class="subtitle">
-                Welcome, Engineer! Optimize the grid for stability and maximize your **SCORE** by implementing complex, sustainable solutions.
-            </div>
-            <button class="big-btn" onclick="showScenarioSelection()">START ADVENTURE</button>
-        </div>
-
-        <div id="scenario-selection" class="overlay hidden">
-            <div class="title" style="font-size: 3em;">🌍 Select Your Scenario</div>
-            <div class="subtitle" style="margin-bottom: 15px;">
-                Choose the environment for your community.
-            </div>
-            <div class="scenario-container">
-                <div class="scenario-card" onclick="startGame('urban')">
-                    <h3>🏙️ Urban Community</h3>
-                    <p>High population density, many buildings, high critical load.</p>
-                </div>
-                <div class="scenario-card" onclick="startGame('rural')">
-                    <h3>🚜 Rural Community</h3>
-                    <p>Low population density, farm systems, ample renewable space.</p>
+        <header class="top-bar glass-panel">
+            <div class="brand">
+                <span class="material-icons brand-icon">bolt</span>
+                <div class="brand-text">
+                    <h1>ECO GRID</h1>
+                    <small>TYCOON REMASTERED</small>
                 </div>
             </div>
-            <button class="big-btn" style="margin-top: 20px; font-size: 1.4em; padding: 10px 30px;" onclick="document.getElementById('scenario-selection').classList.add('hidden'); document.getElementById('start-screen').classList.remove('hidden');">Back</button>
-        </div>
 
-        <div id="win-screen" class="overlay hidden">
-            <div class="title" style="color:#69f0ae; font-size: 3em;">CHALLENGE COMPLETE!</div>
-            <div class="subtitle">You managed the grid and earned a great Complexity Score! <br>Final Score: <span id="final-score" class="score-text"></span></div>
-            <button class="big-btn" onclick="location.reload()">PLAY AGAIN</button>
-        </div>
-        
-        <div id="lose-screen" class="overlay hidden">
-            </div>
-
-        <div id="system-map">
-            <div class="mascot-container" style="position: absolute; bottom: 5px; right: 5px; width: 250px; background: #fff59d; padding: 10px; border-radius: 20px 20px 0 20px; border: 4px solid #ffd600; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: flex-start; gap: 8px; z-index: 100; animation: float 3s ease-in-out infinite;">
-                <div class="mascot-face" id="mascot-face" style="font-size: 2em; line-height: 1;">🤖</div>
-                <div class="mascot-text" id="mascot-msg" style="font-size: 1em; color: #333; font-weight: 600; font-family: 'Poppins', sans-serif;">Welcome!</div>
-            </div>
-        </div>
-        
-        <div class="modal" id="guideModal">
-            <div class="modal-box" id="guide-modal-content">
-                <button onclick="closeGuideModal()" style="margin-top:20px; width:100%; padding:15px; border-radius:10px; background:#2196f3; color:white; border:none; cursor:pointer; font-weight:bold; font-family:'Fredoka', cursive; font-size: 1.1em;">Close Guide</button>
-            </div>
-        </div>
-
-        <div class="control-panel">
-            <div class="stat-box">
-                <div style="font-size: 0.9em;">BANK ACCOUNT (Credits)</div>
-                <div class="credits-text" id="credits-display">$4,000</div>
-            </div>
-
-            <div class="stat-box" style="background: #e0f2f1; border-color: #80cbc4;">
-                <div style="font-size: 0.9em;">COMPLEXITY SCORE (BIP Goal)</div>
-                <div class="score-text" id="score-display">0</div>
-            </div>
-
-            <div class="progress-container">
-                <div class="progress-label" style="font-size: 0.9em;"><span>Challenge Progress</span> <span id="month-label">Month 1 / 12</span></div>
-                <div class="progress-bar" style="width: 100%; height: 15px; background: #ddd; border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);"><div class="progress-fill" id="month-fill" style="height: 100%; background: linear-gradient(90deg, #42a5f5, #1e88e5); width: 0%; transition: width 0.5s; border-radius: 10px;"></div></div>
-            </div>
-
-            <div class="status-group">
-                <div class="time-box">
-                    <div id="season-icon" style="font-size: 2.5em; transition: transform 0.5s;">❄️</div>
-                    <div id="season-label" style="font-weight: bold; color:#0d47a1; font-size: 1.1em; margin-bottom: 5px;">January (Winter)</div>
-                    <div id="event-display" class="event-box" style="display:none;"></div>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="label">CREDITS</span>
+                    <span class="value money" id="credits-display">$0</span>
                 </div>
-
-                <div class="rating-box">
-                    <div style="font-size: 0.9em;">MONTHLY RATING (0-100)</div>
-                    <div id="final-score-rating">0</div>
+                <div class="stat-item">
+                    <span class="label">GRID SCORE</span>
+                    <span class="value score" id="score-display">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">DATE</span>
+                    <span class="value" id="date-display">Month 1</span>
                 </div>
             </div>
+        </header>
+
+        <div class="main-layout">
             
-            <h3 style="margin-top:0; color:#8e24aa;">Elements Legend (BIP)</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size:0.8em;">
-                <span style="color:#2e7d32; font-weight:bold;">CONSUMERS:</span>
-                <span style="color:#1e88e5; font-weight:bold;">GENERATION:</span>
-                <span>🏠 Building, 🏭 Warehouse</span>
-                <span>☀️ Photovoltaic, 🌬️ Wind</span>
-                <span>🔋 Charging, 🚜 Farm Systems</span>
-                <span>🌊 Hydro Power</span>
-                <span>🏗️ Heavy-Duty, 🏥 Critical</span>
-                <span style="color:#ff9800; font-weight:bold;">UTILITY:</span>
-                <span>⚡ Power Lines, 📟 Meter</span>
-                <span style="color:#4a148c; font-weight:bold;">STORAGE:</span>
-                <span>🔋 Batteries, 💧 Close Cycle</span>
+            <div class="map-container glass-panel">
+                <div id="system-map">
+                    <div id="grid-lines"></div>
+                    <div id="map-elements-layer"></div>
+                    
+                    <div id="notification-ticker" class="hidden">
+                        <span class="material-icons">info</span> <span id="ticker-text">Welcome.</span>
+                    </div>
+                </div>
             </div>
 
-            <button onclick="openGuideModal()" style="padding: 10px; border-radius: 10px; background: #2196f3; color: white; border: none; font-weight: bold; font-size: 1em; cursor: pointer; margin-top: 5px;">
-                <span class="material-icons" style="vertical-align: middle; font-size: 1.2em;">help</span> Game Guide
-            </button>
-            
-            <div style="margin-top:auto;">
-                <button class="btn-action" id="next-month-btn" onclick="nextMonth()" style="background: #ffc107; border: 3px solid #ff9800; padding: 15px; border-radius: 12px; font-size: 1.4em; font-weight: 800; cursor: pointer; color: #333; text-shadow: 1px 1px 0 #ffb300; box-shadow: 0 4px 0 #ff9800; transition: transform 0.1s; width: 100%;">NEXT MONTH</button>
+            <div class="sidebar glass-panel">
+                
+                <div class="panel-section">
+                    <h3>GRID BALANCE</h3>
+                    <div class="gauge-container">
+                        <div class="gauge-labels">
+                            <span style="color:#ff5252">LOAD</span>
+                            <span style="color:#00e676">GEN</span>
+                        </div>
+                        <div class="gauge-bar-bg">
+                            <div id="load-bar" class="gauge-fill load"></div>
+                            <div id="gen-bar" class="gauge-fill gen"></div>
+                        </div>
+                        <div class="gauge-value" id="balance-text">STABLE</div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>CONSTRUCTION</h3>
+                    <div class="tools-grid">
+                        <button class="tool-btn" onclick="selectTool('photovoltaic')">
+                            <div class="tool-icon">☀️</div>
+                            <span>Solar</span>
+                        </button>
+                        <button class="tool-btn" onclick="selectTool('wind')">
+                            <div class="tool-icon">🌬️</div>
+                            <span>Wind</span>
+                        </button>
+                        
+                        <button class="tool-btn" onclick="selectTool('batteries')">
+                            <div class="tool-icon">🔋</div>
+                            <span>Battery</span>
+                        </button>
+
+                         <button class="tool-btn" onclick="selectTool('building')">
+                            <div class="tool-icon">🏢</div>
+                            <span>Apt.</span>
+                        </button>
+
+                        <button class="tool-btn delete" onclick="selectTool('delete')">
+                            <div class="tool-icon">🗑️</div>
+                            <span>Scrap</span>
+                        </button>
+                    </div>
+                    <div id="tool-tip" class="tip-text">Select a component to build</div>
+                </div>
+
+                <div class="panel-section bottom-ops">
+                    <div class="weather-widget">
+                        <span class="material-icons" id="weather-icon">wb_sunny</span>
+                        <div>
+                            <div id="season-name">Summer</div>
+                            <small id="weather-desc">Clear Skies</small>
+                        </div>
+                    </div>
+                    <button id="next-month-btn" onclick="nextMonth()">
+                        NEXT MONTH <span class="material-icons">arrow_forward</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="upgradeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:501; display:flex; align-items:center; justify-content:center;">
-        <div class="modal-box" style="width:350px; padding:20px; background:white; border-radius:20px; border:4px solid #00c853; text-align:center; box-shadow:0 8px 20px rgba(0,0,0,0.5);">
-            <h2 id="modal-title" style="margin-top:0; color:#00c853; font-family:'Fredoka', cursive; font-size: 1.4em;">Save Energy!</h2>
-            <p id="modal-subtitle" style="font-size: 1em;">Upgrade this element to lower its power demand.</p>
+    <div id="start-screen" class="overlay active">
+        <div class="modal-card">
+            <h1 class="glitch-text">ECO GRID</h1>
+            <p>Select your starting scenario:</p>
+            <div class="scenario-options">
+                <button class="scenario-btn" onclick="startGame('urban')">
+                    <span class="material-icons">location_city</span>
+                    <div>
+                        <strong>URBAN CITY</strong>
+                        <small>High Density • Office Blocks</small>
+                    </div>
+                </button>
+                <button class="scenario-btn" onclick="startGame('rural')">
+                    <span class="material-icons">agriculture</span>
+                    <div>
+                        <strong>RURAL FARM</strong>
+                        <small>Heavy Industry • Agriculture</small>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="upgradeModal" class="overlay">
+        <div class="modal-card small">
+            <div class="modal-header">
+                <h3 id="u-title">ELEMENT</h3>
+                <button class="icon-btn" onclick="closeUpgradeModal()">✕</button>
+            </div>
+            <p id="u-desc">Stats...</p>
+            <div id="upgrade-list"></div>
             <input type="hidden" id="selectedElementId">
-            <div id="upgrade-buttons">
-                </div>
-            <button onclick="closeUpgradeModal()" style="margin-top:10px; width:100%; padding:10px; border-radius:8px; background:#f44336; color:white; border:none; cursor:pointer; font-weight:bold; font-family:'Fredoka', cursive;">Close</button>
         </div>
     </div>
 
-    
+    <div id="report-modal" class="overlay">
+        <div class="modal-card report">
+            <h2>MONTH REPORT</h2>
+            <div class="report-grid">
+                <div class="r-item"><label>Rating</label><div class="r-val" id="r-rating">100%</div></div>
+                <div class="r-item"><label>Income</label><div class="r-val success" id="r-income">+$0</div></div>
+                <div class="r-item"><label>Upkeep</label><div class="r-val danger" id="r-cost">-$0</div></div>
+            </div>
+            <div class="net-display">NET: <span id="r-net">0</span></div>
+            <button class="action-btn" onclick="closeReport()">CONTINUE</button>
+        </div>
+    </div>
+
 </body>
 </html>
