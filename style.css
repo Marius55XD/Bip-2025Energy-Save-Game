@@ -1,4 +1,6 @@
 /* --- VARIABLES --- */
+
+
 :root {
     --bg-dark: #121212;
     --glass: rgba(30, 30, 30, 0.85);
@@ -103,7 +105,7 @@ body {
 }
 
 /* --- SIDEBAR & TOOLS --- */
-.sidebar { width: 320px; padding: 15px; display: flex; flex-direction: column; gap: 20px; }
+.sidebar { width: 320px; padding: 15px; display: flex; flex-direction: column; gap: 6px; }
 .panel-section h3 { margin: 0 0 10px 0; font-size: 0.8rem; color: #888; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px; }
 
 .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -128,7 +130,7 @@ body {
 .gauge-value { text-align: center; margin-top: 5px; font-family: 'Orbitron'; font-size: 0.9rem; }
 
 /* BOTTOM OPS */
-.bottom-ops { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.bottom-ops { margin-top: auto; display: flex; flex-direction: column; gap: 7px; }
 .weather-widget { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; }
 #next-month-btn {
     background: linear-gradient(135deg, var(--primary), #1565c0); border: none; padding: 15px;
@@ -256,3 +258,111 @@ body {
 .action-btn:active {
     transform: translateY(1px);
 }
+
+/* --- Help Bubble --- */
+.help-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 9999;   /* ⬅⬅⬅ makes modal above panels, buttons, canvas */
+}
+
+/* ===========================
+   HELP BUTTON
+=========================== */
+
+#helpButton:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* ===========================
+   HELP MODAL
+=========================== */
+
+
+.help-modal.hidden {
+    display: none;
+}
+
+/* ===============================
+   HELP BUTTON (Beside Credits)
+================================*/
+
+.help-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* ===============================
+   HELP MODAL
+================================*/
+
+.help-modal.hidden {
+    display: none;
+}
+
+.help-card {
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 25px;
+    width: 450px;
+    max-height: 80vh;       /* ← enables scrolling */
+    overflow-y: auto;       /* ← scrolling enabled */
+    box-shadow: 0 0 40px rgba(0,0,0,0.7);
+}
+
+/* ===============================
+   HELP BUTTON (Beside Credits)
+================================*/
+.help-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 1rem;
+    transition: 0.2s;
+}
+.help-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* ===============================
+   HELP MODAL (Overlay)
+================================*/
+.help-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999; /* ABOVE EVERYTHING */
+}
+
+.help-modal.hidden {
+    display: none;
+}
+
+/* ===============================
+   HELP MODAL CARD (Scrollable)
+================================*/
+.help-card {
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 25px;
+    width: 450px;
+    max-height: 80vh; /* scroll area */
+    overflow-y: auto; /* scrolling enabled */
+    box-shadow: 0 0 40px rgba(0,0,0,0.7);
+}
+
+
+
+

@@ -25,10 +25,14 @@
             </div>
 
             <div class="stats-container">
-                <div class="stat-item">
-                    <span class="label">CREDITS</span>
-                    <span class="value money" id="credits-display">$0</span>
+                <div class="stat-item" style="display:flex; align-items:center; gap:10px;">
+                    <div>
+                        <span class="label">CREDITS</span>
+                        <span class="value money" id="credits-display">$0</span>
+                    </div>
+                    <button id="helpButton" class="help-btn">❓</button>
                 </div>
+
                 <div class="stat-item">
                     <span class="label">GRID SCORE</span>
                     <span class="value score" id="score-display">0</span>
@@ -39,6 +43,8 @@
                 </div>
             </div>
         </header>
+
+
 
         <div class="main-layout">
             
@@ -163,6 +169,51 @@
             <button class="action-btn" onclick="closeReport()">CONTINUE</button>
         </div>
     </div>
+
+    <!-- HELP / HOW-TO PLAY MODAL -->
+    <!-- HELP / HOW TO PLAY MODAL -->
+    <div id="helpModal" class="help-modal hidden">
+        <div class="help-card">
+            <button id="closeHelp" class="icon-btn" style="float:right; font-size:1.4rem;">✕</button>
+
+            <h2>How to Play</h2>
+            <p><strong>Goal:</strong> Build a stable, efficient energy grid while expanding your city.</p>
+
+            <h3>Components</h3>
+            <ul>
+                <li><strong>☀️ Solar</strong> — Generates power during daytime, weaker in winter.</li>
+                <li><strong>🌬️ Wind</strong> — Power changes based on wind & season.</li>
+                <li><strong>🔋 Battery</strong> — Stores excess power for later use.</li>
+                <li><strong>🏢 Apartment</strong> — Increases population & energy demand.</li>
+                <li><strong>🗑 Scrap</strong> — Removes placed structures.</li>
+            </ul>
+
+            <h3>Grid Balance</h3>
+            <p>Keep <strong>LOAD</strong> (red) and <strong>GEN</strong> (green) close to equal.</p>
+
+            <h3>Weather System</h3>
+            <p>Season affects power production — plan your builds around it!</p>
+
+            <h3>Gameplay Loop</h3>
+            <ol>
+                <li>Select a structure.</li>
+                <li>Place it on the grid map.</li>
+                <li>Watch your energy balance.</li>
+                <li>Advance to the next month.</li>
+                <li>Earn or lose credits based on stability.</li>
+            </ol>
+
+            <h3>Tips</h3>
+            <ul>
+                <li>Mix solar + wind for consistent output.</li>
+                <li>Avoid too many apartments early.</li>
+                <li>Use batteries to stabilize your grid.</li>
+            </ul>
+        </div>
+    </div>
+
+
+
 
 </body>
 </html>

@@ -381,3 +381,27 @@ function closeReport() {
     }
     updateUI();
 }
+
+// =====================
+// HELP MODAL LOGIC
+// =====================
+const helpBtn = document.getElementById("helpButton");
+const helpModal = document.getElementById("helpModal");
+const closeHelp = document.getElementById("closeHelp");
+
+helpBtn.addEventListener("click", () => {
+    helpModal.classList.remove("hidden");
+});
+
+closeHelp.addEventListener("click", () => {
+    helpModal.classList.add("hidden");
+});
+
+helpModal.addEventListener("click", (e) => {
+    if (e.target === helpModal) {
+        helpModal.classList.add("hidden");
+    }
+});
+
+
+
