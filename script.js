@@ -34,7 +34,13 @@ const ELEMENTS = {
     barn: {name: 'Barn', cost: 300, type: 'load', base: 35, icon: '🏚️'},    // rural barn-style emoji
 
     //
-    greenhouse: {name: 'Greenhouse', cost: 350, type: 'load', base: 50, icon: '🌿'}
+    greenhouse: {name: 'Greenhouse', cost: 350, type: 'load', base: 50, icon: '🌿'},
+
+    photovoltaic: {name: 'Solar Panel', cost: 400, type: 'gen', base: 40, icon: '☀️'},
+
+    thermo: {name: 'Thermo Solar Plant', cost: 900, type: 'gen', base: 95, icon: '🔥'}
+
+
 
 
 };
@@ -98,7 +104,13 @@ const UPGRADES = {
     greenhouse: [
         { id: 'heat', name: 'Efficient Heating', cost: 200, mod: 0.85, desc: '-15% Load' },
         { id: 'glass', name: 'Thermal Glass', cost: 300, mod: 0.70, desc: '-30% Load' }
+    ],
+
+    thermo: [
+        { id: 'mirrors', name: 'Mirror Expansion', cost: 350, mod: 1.25, desc: '+25% Output' },
+        { id: 'cooling', name: 'Heat Sink Cooling', cost: 200, mod: 1.15, desc: '+15% Output' }
     ]
+
 
 
 
@@ -131,6 +143,17 @@ const dom = {
 };
 
 // --- GAME LOGIC ---
+
+//grid sizing
+function resizeGridToFit()
+{
+    const container = document.getElementById("system-map");
+
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+
+
+}
 
 function startGame(scenario) {
     document.getElementById('start-screen').classList.remove('active');
@@ -253,8 +276,8 @@ function placeItem(key, x, y) {
     div.className = 'placed-element';
     div.id = id;
     // Add margin adjustment to center in 70px grid
-    div.style.left = (x + 3) + 'px';
-    div.style.top = (y + 3) + 'px';
+    div.style.left = x  + 'px';
+    div.style.top = y  + 'px';
     div.innerHTML = def.icon;
     
     if (def.type === 'gen') div.setAttribute('data-cat', 'Generation');
@@ -273,6 +296,9 @@ function placeItem(key, x, y) {
             openUpgradeModal(id);
         }
     };
+
+
+
 
     dom.layer.appendChild(div);
 }
@@ -486,9 +512,35 @@ function openGameOverModal(finalScore) {
 
 
 
-function restartGame() {
+function restartGame()
+{
     location.reload();
 }
+
+function openSolarChoice() {
+    document.getElementById('solar-select-modal').classList.add('active');
+}
+
+function closeSolarChoice() {
+    document.getElementById('solar-select-modal').classList.remove('active');
+}
+
+function selectSolarType(type) {
+    state.tool = type;              // 'photovoltaic' or 'thermo'
+    closeSolarChoice();             // hide modal
+    dom.map.classList.add('build-mode');
+
+    const item = ELEMENTS[type];
+    dom.toolTip.innerText = `BUILD ${item.name.toUpperCase()} ($${item.cost})`;
+
+    // highlight correct button
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+}
+
+
+window.addEventListener("load", resizeGridToFit);
+window.addEventListener("resize", resizeGridToFit);
+
 
 
 

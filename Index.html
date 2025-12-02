@@ -79,7 +79,7 @@
                 <div class="panel-section">
                     <h3>CONSTRUCTION</h3>
                     <div class="tools-grid">
-                        <button class="tool-btn" onclick="selectTool('photovoltaic')">
+                        <button class="tool-btn" onclick="openSolarChoice()">
                             <div class="tool-icon">☀️</div>
                             <span>Solar</span>
                         </button>
@@ -248,6 +248,28 @@
             </div>
 
             <button class="action-btn" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div id="solar-select-modal" class="overlay">
+        <div class="modal-card small" style="text-align:center;">
+            <h3>Select Solar Technology</h3>
+
+            <div class="solar-choice-grid">
+                <button class="solar-choice-btn" onclick="selectSolarType('photovoltaic')">
+                    <span class="tool-icon" style="font-size:2rem;">☀️</span>
+                    <strong>Solar Panels</strong>
+                    <small>Low cost • Moderate output</small>
+                </button>
+
+                <button class="solar-choice-btn" onclick="selectSolarType('thermo')">
+                    <span class="tool-icon" style="font-size:2rem;">🔥</span>
+                    <strong>Thermo Solar</strong>
+                    <small>Expensive • High output</small>
+                </button>
+            </div>
+
+            <button class="action-btn" onclick="closeSolarChoice()">Cancel</button>
         </div>
     </div>
 
