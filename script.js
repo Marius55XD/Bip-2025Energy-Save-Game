@@ -20,7 +20,23 @@ const ELEMENTS = {
     critical: { name: 'Hospital', cost: 1000, type: 'load', base: 60, icon: '🏥' },
     
     // Utility
-    meter: { name: 'Grid Ops', cost: 100, type: 'util', base: 0, icon: '📡' }
+    meter: { name: 'Grid Ops', cost: 100, type: 'util', base: 0, icon: '📡' },
+
+    // office
+
+    office: {name: 'Office Tower', cost: 300, type: 'load', base: 40, icon: '🏬'},
+
+        //police station
+
+    police: {name: 'Police Station', cost: 300, type: 'load', base: 30, icon: '🚓'},
+
+    //barn
+    barn: {name: 'Barn', cost: 300, type: 'load', base: 35, icon: '🏚️'},    // rural barn-style emoji
+
+    //
+    greenhouse: {name: 'Greenhouse', cost: 350, type: 'load', base: 50, icon: '🌿'}
+
+
 };
 
 // UPGRADES - Added missing items to ensure EVERYTHING is clickable
@@ -62,8 +78,34 @@ const UPGRADES = {
     ],
     batteries: [
         { id: 'cap', name: 'Capacity Expansion', cost: 400, mod: 1.50, desc: '+50% Capacity' }
+    ],
+
+    office: [
+        { id: 'insulate', name: 'Insulation Upgrade', cost: 150, mod: 0.85, desc: '-15% Load' },
+        { id: 'led', name: 'LED Lighting Upgrade', cost: 120, mod: 0.80, desc: '-20% Load' }
+    ],
+
+    police: [
+        { id: 'efficientLighting', name: 'Efficient Lighting', cost: 120, mod: 0.85, desc: '-15% Load' },
+        { id: 'insulation', name: 'Station Insulation', cost: 180, mod: 0.75, desc: '-25% Load' }
+    ],
+
+    barn: [
+        { id: 'insulate', name: 'Wall Insulation', cost: 120, mod: 0.85, desc: '-15% Load' },
+        { id: 'vent', name: 'Auto Ventilation', cost: 180, mod: 0.75, desc: '-25% Load' }
+    ],
+
+    greenhouse: [
+        { id: 'heat', name: 'Efficient Heating', cost: 200, mod: 0.85, desc: '-15% Load' },
+        { id: 'glass', name: 'Thermal Glass', cost: 300, mod: 0.70, desc: '-30% Load' }
     ]
+
+
+
+
 };
+
+
 
 const SEASONS = [
     { name: 'Winter', icon: 'ac_unit', solar: 0.5, wind: 1.3 },
@@ -103,6 +145,8 @@ function startGame(scenario) {
         placeItem('building', 70, 140);
         placeItem('warehouse', 210, 70);
         placeItem('critical', 420, 140);
+        placeItem('office', 210, 210);
+        placeItem('police', 350, 210);
     } else {
         // RURAL
         state.credits = 4500;
@@ -111,6 +155,12 @@ function startGame(scenario) {
         placeItem('factory', 70, 280);
         placeItem('farm', 140, 70);
         placeItem('farm', 210, 70);
+        placeItem('barn', 350, 280);
+        placeItem('greenhouse', 350, 210);
+
+
+
+
     }
     updateUI();
 }
@@ -203,7 +253,7 @@ function placeItem(key, x, y) {
     div.className = 'placed-element';
     div.id = id;
     // Add margin adjustment to center in 70px grid
-    div.style.left = (x + 3) + 'px'; 
+    div.style.left = (x + 3) + 'px';
     div.style.top = (y + 3) + 'px';
     div.innerHTML = def.icon;
     
