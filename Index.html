@@ -220,6 +220,38 @@
         </div>
     </div>
 
+    <!-- GAME OVER MODAL -->
+    <div id="gameover-modal" class="overlay">
+        <div class="modal-card small" style="text-align:center;">
+            <h2 style="color: var(--warning); margin-top:0;">GAME OVER</h2>
+
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                <p><strong>Final Score:</strong>
+                    <span id="gameover-score" style="color: var(--success); font-family:'Orbitron'"></span>
+                </p>
+
+                <p><strong>Final Credits:</strong>
+                    <span id="gameover-credits" style="color: var(--primary); font-family:'Orbitron'"></span>
+                </p>
+
+                <p><strong>Total Generation:</strong>
+                    <span id="gameover-gen" style="color: var(--success); font-family:'Orbitron'"></span> kW
+                </p>
+
+                <p><strong>Total Load:</strong>
+                    <span id="gameover-load" style="color: var(--danger); font-family:'Orbitron'"></span> kW
+                </p>
+
+                <p><strong>Net Balance:</strong>
+                    <span id="gameover-net" style="font-family:'Orbitron'"></span> kW
+                </p>
+            </div>
+
+            <button class="action-btn" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+
 
 
 

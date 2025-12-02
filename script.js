@@ -377,8 +377,8 @@ function closeReport() {
     document.getElementById('report-modal').classList.remove('active');
     state.month++;
     if(state.month >= MAX_MONTHS) {
-        alert(`GAME OVER! Final Score: ${state.score}`);
-        location.reload();
+        openGameOverModal(state.score);
+        return;
     }
     updateUI();
 }
@@ -408,9 +408,38 @@ function openFundsModal() {
     document.getElementById('funds-modal').classList.add('active');
 }
 
+
+
 function closeFundsModal() {
     document.getElementById('funds-modal').classList.remove('active');
 }
+
+function openGameOverModal(finalScore) {
+    const metrics = getMetrics(); // reuse existing power calculations
+
+    const gen = Math.floor(metrics.totalGen);
+    const load = Math.floor(metrics.totalLoad);
+    const net = gen - load;
+
+    document.getElementById('gameover-score').innerText = finalScore;
+    document.getElementById('gameover-credits').innerText = `$${Math.floor(state.credits)}`;
+    document.getElementById('gameover-gen').innerText = gen;
+    document.getElementById('gameover-load').innerText = load;
+
+    const netSpan = document.getElementById('gameover-net');
+    netSpan.innerText = net;
+
+    netSpan.style.color = (net >= 0 ? "var(--success)" : "var(--danger)");
+
+    document.getElementById('gameover-modal').classList.add('active');
+}
+
+
+
+function restartGame() {
+    location.reload();
+}
+
 
 
 
