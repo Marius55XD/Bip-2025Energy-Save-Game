@@ -171,7 +171,8 @@ dom.map.addEventListener('click', (e) => {
                 placeItem(state.tool, x, y);
                 updateUI();
             } else {
-                alert("Insufficient Funds!");
+                openFundsModal();
+
             }
         }
     } else {
@@ -402,6 +403,15 @@ helpModal.addEventListener("click", (e) => {
         helpModal.classList.add("hidden");
     }
 });
+
+function openFundsModal() {
+    document.getElementById('funds-modal').classList.add('active');
+}
+
+function closeFundsModal() {
+    document.getElementById('funds-modal').classList.remove('active');
+}
+
 
 
 
