@@ -126,8 +126,41 @@ const SEASONS = [
     { name: 'Autumn', icon: 'grass', solar: 0.8, wind: 1.1 }
 ];
 
+// --- RANDOM WEATHER CONDITIONS ---
+const WEATHER_TYPES = [
+    {
+        name: "Clear Skies",
+        icon: "☀️",
+        solar: 1.0,   // normal
+        wind: 1.0,
+        hydro: 1.0
+    },
+    {
+        name: "Windy",
+        icon: "🌬️",
+        solar: 0.9,   // slightly reduced
+        wind: 1.35,   // big boost
+        hydro: 1.0
+    },
+    {
+        name: "Cloudy",
+        icon: "☁️",
+        solar: 0.65,  // strong penalty
+        wind: 1.0,
+        hydro: 1.05   // small rainfall runoff boost
+    },
+    {
+        name: "Rainy",
+        icon: "🌧️",
+        solar: 0.5,   // very weak solar
+        wind: 1.1,    // moderate wind boost
+        hydro: 1.25   // strong hydropower boost
+    }
+];
+
+
 // STATE
-let state = { credits: 0, score: 0, month: 0, grid: [], tool: null };
+let state = { credits: 0, score: 0, month: 0, grid: [], tool: null, weather:null };
 
 // DOM ELEMENTS
 const dom = {
@@ -304,7 +337,8 @@ function placeItem(key, x, y) {
 }
 
 // --- CALCS & UI ---
-function getMetrics() {
+function getMetrics()
+{
     let totalGen = 0, totalLoad = 0, upkeep = 0;
     const season = SEASONS[Math.floor(state.month/3)%4];
 
@@ -322,10 +356,30 @@ function getMetrics() {
         }
 
         if (def.type === 'gen') {
-            if (el.key === 'photovoltaic') val *= season.solar;
-            if (el.key === 'wind') val *= season.wind;
+
+            // Weather modifier (Clear / Windy / Cloudy / Rainy)
+            const weather = state.weather || { solar: 1, wind: 1, hydro: 1 };
+
+            // Apply seasonal + weather multipliers
+            if (el.key === 'photovoltaic') {
+                val *= season.solar * weather.solar;
+            }
+            if (el.key === 'wind') {
+                val *= season.wind * weather.wind;
+            }
+            if (el.key === 'hydro') {
+                val *= weather.hydro;
+            }
+            if (el.key === 'thermo') {
+                // Thermo solar reacts differently — heat > light
+                val *= (weather.solar * 0.8) + 0.2;  // stable output but slightly affected by weather
+            }
+
             totalGen += val;
-        } else if (def.type === 'load') {
+        }
+
+
+        else if (def.type === 'load') {
             if (season.name === 'Summer') val *= 1.15;
             if (season.name === 'Winter') val *= 1.10;
             totalLoad += val;
@@ -423,6 +477,15 @@ function closeUpgradeModal() {
 
 // --- TURN END ---
 function nextMonth() {
+
+    // Pick random weather for the new month
+    state.weather = generateRandomWeather();
+
+    showWeatherPopup(state.weather);
+
+
+
+
     const m = getMetrics();
     const bal = m.totalGen - m.totalLoad;
     
@@ -456,7 +519,15 @@ function closeReport() {
         openGameOverModal(state.score);
         return;
     }
-    updateUI();
+    updateUI()
+    {
+        // Display weather condition
+        if (!state.weather) state.weather = generateRandomWeather();
+
+        document.getElementById("weather-icon").innerText = state.weather.icon;
+        document.getElementById("weather-desc").innerText = state.weather.name;
+
+    }
 }
 
 // =====================
@@ -536,6 +607,41 @@ function selectSolarType(type) {
     // highlight correct button
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
 }
+
+const WEATHER_DESCRIPTIONS = {
+    "Clear Skies": "Normal solar & wind output.",
+    "Windy": "Wind turbines boosted. Solar slightly reduced.",
+    "Cloudy": "Solar weakened significantly. Hydro slightly boosted.",
+    "Rainy": "Solar very weak. Wind boosted. Hydro strongly boosted."
+};
+
+
+function generateRandomWeather()
+{
+    return WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+}
+
+function showWeatherPopup(weather) {
+    const popup = document.getElementById("weather-popup");
+    const icon = document.getElementById("weather-popup-icon");
+    const text = document.getElementById("weather-popup-text");
+
+    icon.innerText = weather.icon;
+    text.innerText = WEATHER_DESCRIPTIONS[weather.name] || "";
+
+    popup.classList.remove("hidden");
+
+    // Trigger slide-up animation
+    setTimeout(() => popup.classList.add("show"), 10);
+
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+        popup.classList.remove("show");
+        setTimeout(() => popup.classList.add("hidden"), 400);
+    }, 4000);
+}
+
+
 
 
 window.addEventListener("load", resizeGridToFit);
