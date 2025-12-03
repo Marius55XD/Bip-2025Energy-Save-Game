@@ -122,6 +122,71 @@
         </div>
     </div>
 
+    <!-- ===========================
+     FULL INTRO MENU
+=========================== -->
+    <div id="intro-menu" class="overlay active">
+        <div class="intro-card">
+
+            <h1>WELCOME TO <span class="blue">ECO GRID</span></h1>
+            <p class="sub">Master the grid. Balance power. Survive 12 months.</p>
+
+            <div class="intro-scroll">
+
+                <h2>🎯 Your Goal</h2>
+                <p>Build and manage an energy grid while expanding your city. Keep GENERATION and LOAD balanced to earn profits and avoid blackouts.</p>
+
+                <h2>⚡ Energy Systems</h2>
+                <ul>
+                    <li><strong>Solar</strong> — Strong in summer, weak in winter.</li>
+                    <li><strong>Wind</strong> — Shifts based on seasons & weather.</li>
+                    <li><strong>Hydro</strong> — Reliable, boosted by rain.</li>
+                    <li><strong>Batteries</strong> — Store surplus energy for later.</li>
+                </ul>
+
+                <h2>🏙 City Growth</h2>
+                <ul>
+                    <li><strong>Apartments</strong> — Increase population & load.</li>
+                    <li><strong>Offices & Factories</strong> — Heavy daytime load.</li>
+                    <li><strong>Farms & Barns</strong> — Steady rural demand.</li>
+                    <li><strong>Hospitals & Police</strong> — Critical load units.</li>
+                </ul>
+
+                <h2>🌤 Seasons & Weather</h2>
+                <p>Each month has dynamic weather that affects power output:</p>
+                <ul>
+                    <li><strong>Winter</strong> — Weak solar, strong wind.</li>
+                    <li><strong>Spring</strong> — Balanced output.</li>
+                    <li><strong>Summer</strong> — Powerful solar, weaker wind.</li>
+                    <li><strong>Autumn</strong> — Slight solar drop, wind boost.</li>
+                </ul>
+                <p>Weather can be Clear, Cloudy, Windy, or Rainy — each with effects.</p>
+
+                <h2>🛠 Upgrades</h2>
+                <p>Click a structure to access specialized upgrades that boost efficiency or output.</p>
+
+                <h2>📅 Monthly Reports</h2>
+                <p>Every month you gain income based on stability. Upkeep is deducted from your total credits.</p>
+
+                <h2>💡 Tips</h2>
+                <ul>
+                    <li>Mix solar + wind for stability.</li>
+                    <li>Don't build too many apartments early!</li>
+                    <li>Batteries help smooth sudden weather dips.</li>
+                    <li>Upgrade BEFORE expanding too much.</li>
+                </ul>
+            </div>
+
+
+            <div class="intro-button-container">
+                <button id="intro-start-btn" class="intro-start-btn">I GOT THIS!!!</button>
+            </div>
+
+        </div>
+    </div>
+
+
+
     <div id="start-screen" class="overlay active">
         <div class="modal-card">
             <h1 class="glitch-text">ECO GRID</h1>
@@ -272,6 +337,33 @@
             <button class="action-btn" onclick="closeSolarChoice()">Cancel</button>
         </div>
     </div>
+
+    <div id="protected-modal" class="overlay hidden" style="z-index: 999999;">
+        <div class="modal-card" style="
+        width: 350px;
+        padding: 20px;
+        background: #1a1a1a;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.15);
+        text-align: center;
+    ">
+            <h2 style="color:#ffeb3b; margin-bottom:10px;">Cannot Scrap</h2>
+            <p style="color:#ddd; margin-bottom:20px;">
+                This building is essential and cannot be removed.
+            </p>
+            <button onclick="closeProtectedPopup()" style="
+            padding: 10px 20px;
+            background: #2979ff;
+            color: white;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            font-size:1rem;
+        ">OK</button>
+        </div>
+    </div>
+
+
 
     <!-- WEATHER EFFECT POPUP -->
     <div id="weather-popup" class="weather-popup hidden">

@@ -195,24 +195,26 @@ function startGame(scenario) {
 
     if (scenario === 'urban') {
         state.credits = 5000;
-        placeItem('meter', 280, 280); 
-        placeItem('building', 70, 70);
-        placeItem('building', 140, 70);
-        placeItem('building', 70, 140);
-        placeItem('warehouse', 210, 70);
-        placeItem('critical', 420, 140);
-        placeItem('office', 210, 210);
-        placeItem('police', 350, 210);
+        placeItem('meter', 280, 280, false);
+        placeItem('building', 70, 70, true);
+        placeItem('building', 140, 70, true);
+        placeItem('building', 70, 140, true);
+        placeItem('warehouse', 210, 70, false);
+        placeItem('critical', 420, 140, false);
+        placeItem('office', 210, 210, false);
+        placeItem('police', 350, 210, false);
+
     } else {
         // RURAL
         state.credits = 4500;
-        placeItem('meter', 280, 280);
-        placeItem('hydro', 490, 70);
-        placeItem('factory', 70, 280);
-        placeItem('farm', 140, 70);
-        placeItem('farm', 210, 70);
-        placeItem('barn', 350, 280);
-        placeItem('greenhouse', 350, 210);
+        placeItem('meter', 280, 280, false);
+        placeItem('hydro', 490, 70, false);
+        placeItem('factory', 70, 280, false);
+        placeItem('farm', 140, 70, false);
+        placeItem('farm', 210, 70, false);
+        placeItem('barn', 350, 280, false);
+        placeItem('greenhouse', 350, 210, false);
+
 
 
 
@@ -259,8 +261,16 @@ dom.map.addEventListener('click', (e) => {
     if (state.tool === 'delete') {
         // DELETE TOOL LOGIC
         if (existingIndex > -1) {
+            const item = state.grid[existingIndex];
+
+            if (item.protected) {
+                openProtectedPopup();
+                return;
+            }
+
             deleteItem(existingIndex);
         }
+
     } else if (state.tool) {
         // BUILD TOOL LOGIC
         if (existingIndex > -1) {
@@ -299,42 +309,48 @@ function deleteItem(index) {
     updateUI();
 }
 
-function placeItem(key, x, y) {
+function placeItem(key, x, y, protected = false) {
     const id = 'el_' + Date.now() + Math.random().toString(16).slice(2);
     const def = ELEMENTS[key];
-    
-    state.grid.push({ id, key, x, y, mods: [] });
+
+    // ALWAYS safe because protected has a default value
+    state.grid.push({ id, key, x, y, mods: [], protected });
 
     const div = document.createElement('div');
     div.className = 'placed-element';
     div.id = id;
-    // Add margin adjustment to center in 70px grid
-    div.style.left = x  + 'px';
-    div.style.top = y  + 'px';
-    div.innerHTML = def.icon;
-    
-    if (def.type === 'gen') div.setAttribute('data-cat', 'Generation');
-    else if (def.type === 'load') div.setAttribute('data-cat', 'Consumption');
-    else if (def.type === 'store') div.setAttribute('data-cat', 'Storage');
-    else div.setAttribute('data-cat', 'Utility');
 
-    // ELEMENT CLICK HANDLER
+    div.style.left = x + 'px';
+    div.style.top = y + 'px';
+    div.innerHTML = def.icon;
+
+    div.setAttribute(
+        "data-cat",
+        def.type === 'gen' ? "Generation" :
+            def.type === 'load' ? "Consumption" :
+                def.type === 'store' ? "Storage" :
+                    "Utility"
+    );
+
     div.onclick = (e) => {
-        e.stopPropagation(); // Don't trigger map click
-        
+        e.stopPropagation();
+
+        const item = state.grid.find(el => el.id === id);
+
         if (state.tool === 'delete') {
-            const idx = state.grid.findIndex(el => el.id === id);
-            if(idx > -1) deleteItem(idx);
+            if (item.protected) {
+                openProtectedPopup();
+                return;
+            }
+            deleteItem(state.grid.findIndex(el => el.id === id));
         } else {
             openUpgradeModal(id);
         }
     };
 
-
-
-
     dom.layer.appendChild(div);
 }
+
 
 // --- CALCS & UI ---
 function getMetrics()
@@ -640,6 +656,57 @@ function showWeatherPopup(weather) {
         setTimeout(() => popup.classList.add("hidden"), 400);
     }, 4000);
 }
+
+document.getElementById("intro-start-btn").addEventListener("click", () => {
+    const intro = document.getElementById("intro-menu");
+    intro.classList.remove("active");
+    intro.style.display = "none";
+});
+
+// =============================
+// INTRO MENU LOGIC (Scroll to Reveal Button)
+// =============================
+
+// Get scrollable area
+const introScroll = document.querySelector(".intro-scroll");
+
+// Get the button wrapper (we recommend adding the ID, but class also works)
+const introButtonContainer = document.querySelector(".intro-button-container");
+
+// When user scrolls inside the intro/tutorial panel
+introScroll.addEventListener("scroll", () => {
+
+    // How far user has scrolled (top position + visible height)
+    const scrollPos = introScroll.scrollTop + introScroll.clientHeight;
+
+    // The full scrollable height (max scroll)
+    const scrollEnd = introScroll.scrollHeight - 1;
+
+    // If user reached the bottom → reveal button
+    if (scrollPos >= scrollEnd) {
+        introButtonContainer.classList.add("show");
+    } else {
+        introButtonContainer.classList.remove("show");
+    }
+});
+
+// CLOSE INTRO WHEN BUTTON IS CLICKED
+document.getElementById("intro-start-btn").addEventListener("click", () => {
+    const intro = document.getElementById("intro-menu");
+    intro.classList.remove("active");
+    intro.style.display = "none";
+});
+
+function openProtectedPopup() {
+    document.getElementById('protected-modal').classList.remove('hidden');
+}
+
+function closeProtectedPopup() {
+    document.getElementById('protected-modal').classList.add('hidden');
+}
+
+
+
 
 
 
