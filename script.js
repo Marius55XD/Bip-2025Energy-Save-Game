@@ -207,19 +207,15 @@ function startGame(scenario) {
     } else {
         // RURAL
         state.credits = 4500;
-        placeItem('meter', 280, 280, false);
+        placeItem('meter', 280, 280, true);
         placeItem('hydro', 490, 70, false);
-        placeItem('factory', 70, 280, false);
-        placeItem('farm', 140, 70, false);
-        placeItem('farm', 210, 70, false);
-        placeItem('barn', 350, 280, false);
-        placeItem('greenhouse', 350, 210, false);
-
-
-
-
-
+        placeItem('factory', 70, 280, true);
+        placeItem('farm', 140, 70, true);
+        placeItem('farm', 210, 70, true);
+        placeItem('barn', 350, 280, true);
+        placeItem('greenhouse', 350, 210, true);
     }
+
     updateUI();
 }
 
