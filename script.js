@@ -38,7 +38,12 @@ const ELEMENTS = {
 
     photovoltaic: {name: 'Solar Panel', cost: 400, type: 'gen', base: 40, icon: '☀️'},
 
-    thermo: {name: 'Thermo Solar Plant', cost: 900, type: 'gen', base: 95, icon: '🔥'}
+    thermo: {name: 'Thermo Solar Plant', cost: 900, type: 'gen', base: 95, icon: '🔥'},
+
+    geothermal: {name: 'Geothermal Plant', cost: 1500, type: 'gen', base: 110, icon: '🌋'},
+
+    hydrodam: {name: 'Hydro Dam', cost: 2000, type: 'gen', base: 180, icon: '🛠️'}
+
 
 
 
@@ -109,7 +114,17 @@ const UPGRADES = {
     thermo: [
         { id: 'mirrors', name: 'Mirror Expansion', cost: 350, mod: 1.25, desc: '+25% Output' },
         { id: 'cooling', name: 'Heat Sink Cooling', cost: 200, mod: 1.15, desc: '+15% Output' }
+    ],
+    geothermal: [
+        { id: 'steamBoost', name: 'Steam Cycle Boost', cost: 400, mod: 1.20, desc: '+20% Output' },
+        { id: 'thermalLoop', name: 'Thermal Loop Optimization', cost: 600, mod: 1.35, desc: '+35% Output' }
+    ],
+
+    hydrodam: [
+        { id: 'turbinePlus', name: 'Advanced Turbines', cost: 500, mod: 1.25, desc: '+25% Output' },
+        { id: 'spillway', name: 'Spillway Control', cost: 350, mod: 1.15, desc: '+15% Output' }
     ]
+
 
 
 
@@ -172,7 +187,9 @@ const dom = {
     loadBar: document.getElementById('load-bar'),
     genBar: document.getElementById('gen-bar'),
     balanceText: document.getElementById('balance-text'),
-    toolTip: document.getElementById('tool-tip')
+    toolTip: document.getElementById('tool-tip'),
+
+
 };
 
 // --- GAME LOGIC ---
@@ -326,6 +343,8 @@ function placeItem(key, x, y, protected = false) {
             def.type === 'load' ? "Consumption" :
                 def.type === 'store' ? "Storage" :
                     "Utility"
+
+
     );
 
     div.onclick = (e) => {
@@ -382,12 +401,26 @@ function getMetrics()
             if (el.key === 'hydro') {
                 val *= weather.hydro;
             }
-            if (el.key === 'thermo') {
+            if (el.key === 'thermo')
+            {
                 // Thermo solar reacts differently — heat > light
                 val *= (weather.solar * 0.8) + 0.2;  // stable output but slightly affected by weather
             }
 
-            totalGen += val;
+            if (el.key === 'geothermal') {
+                val *= 1.0;  // always stable
+            }
+
+            if (el.key === 'hydrodam') {
+                val *= 1.0 + ((weather.hydro - 1.0) * 0.5);
+                // Example: Rainy hydro (1.25) = +12% instead of +25%
+            }
+
+
+
+
+
+                totalGen += val;
         }
 
 
@@ -410,7 +443,7 @@ function updateUI() {
 
     const seasonIdx = Math.floor(state.month/3)%4;
     document.getElementById('season-name').innerText = SEASONS[seasonIdx].name;
-    document.getElementById('weather-icon').innerText = SEASONS[seasonIdx].icon;
+    document.getElementById('weather-icon').innerText = state.weather.icon;
 
     const max = Math.max(m.totalLoad, m.totalGen, 100) * 1.2;
     dom.loadBar.style.width = (m.totalLoad / max * 50) + '%';

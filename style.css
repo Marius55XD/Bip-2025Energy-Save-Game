@@ -566,4 +566,11 @@ body {
     display: none !important;
 }
 
+.tools-grid {
+    max-height: 220px;      /* adjust as needed */
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+
 
