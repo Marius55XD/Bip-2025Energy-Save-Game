@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ELEMENTS, EVENTS, GRID_SIZE_RURAL, GRID_SIZE_URBAN, RURAL_TRANSMISSION_DISTANCE_THRESHOLD, WIRE_COST_PER_UNIT, SEASONS, WEATHER_TYPES, UPGRADES, QUIZ_QUESTIONS, DEFAULT_LEADERBOARD, PRODUCTION_MATRIX } from './constants';
 import { GameState, GridItem, ElementType, QuizQuestion, LeaderboardEntry, ElementDef } from './types';
@@ -109,8 +108,6 @@ const useAudio = () => {
   return { enabled, setEnabled, playSound };
 };
 
-// ... (Other components like HelpModal, TutorialOverlay, etc. kept same, just updated App logic below)
-
 // --- COMPONENT: HELP MODAL ---
 const HelpModal = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -144,6 +141,10 @@ const HelpModal = ({ onClose }: { onClose: () => void }) => (
               <span className="text-yellow-400">📡</span>
               <span><strong className="text-yellow-400">Utility</strong> (Grid Ops)</span>
             </div>
+            <div className="flex items-center gap-2 p-2 bg-slate-800 rounded border border-gray-600">
+              <span className="text-sm">🔒</span>
+              <span><strong className="text-gray-400">Locked</strong> (City Property)</span>
+            </div>
           </div>
         </section>
         
@@ -151,9 +152,10 @@ const HelpModal = ({ onClose }: { onClose: () => void }) => (
           <h3 className="text-white font-bold mb-1">Strategies</h3>
           <ul className="list-disc pl-5 space-y-1">
             <li>Keep <span className="text-green-400">Generation</span> higher than <span className="text-red-400">Load</span>.</li>
-            <li><strong>Batteries:</strong> They act as buffers. Surplus energy charges them. Deficits drain them.</li>
+            <li><strong>Batteries:</strong> These provide a constant reduction in Load, regardless of weather. Crucial for Blackout events!</li>
             <li><strong>Synergy Bonus:</strong> Build Solar + Wind together for +10% Efficiency.</li>
             <li><strong>Rural Transmission:</strong> Building far from the center costs extra for wiring.</li>
+            <li><strong>Grid Ops Upgrades:</strong> Don't forget to upgrade the main dish for global bonuses!</li>
           </ul>
         </section>
       </div>
@@ -682,6 +684,8 @@ export default function App() {
   };
 
   const getNeighbors = (x: number, y: number, w: number, h: number, gridItems: GridItem[]) => {
+      // Logic for adjacency of multi-tile items
+      // Check perimeter
       const neighbors: GridItem[] = [];
       gridItems.forEach(item => {
          if (item.x === x && item.y === y) return; // self
@@ -691,8 +695,11 @@ export default function App() {
          const iH = iDef.height || 1;
          
          // Check if bounding boxes touch
+         // Horizontal touch
          const touchX = (item.x + iW === x) || (x + w === item.x);
          const overlapY = (item.y < y + h) && (item.y + iH > y);
+         
+         // Vertical touch
          const touchY = (item.y + iH === y) || (y + h === item.y);
          const overlapX = (item.x < x + w) && (item.x + iW > x);
          
@@ -708,14 +715,18 @@ export default function App() {
       const seasonIndex = Math.floor((month - 1) / 3) % 4;
       const season = SEASONS[seasonIndex];
 
+      // MATRIX LOOKUP FOR GEN
       let val = def.baseValue;
       if (def.type === 'gen' && PRODUCTION_MATRIX[def.id]) {
          const weatherMap = PRODUCTION_MATRIX[def.id];
+         // Fallback to Clear Skies if undefined weather
          const multipliers = weatherMap[weather.name] || weatherMap['Clear Skies'];
+         // Apply Season Multiplier from Matrix
          const seasonMod = multipliers ? multipliers[seasonIndex] : 1.0;
          val *= seasonMod;
       }
 
+      // If it's load, apply simple seasonal logic (Heating/Cooling)
       if (def.type === 'load') {
           val *= season.loadMod;
           if (weather.name === 'Heatwave') val *= 1.2;
@@ -726,6 +737,7 @@ export default function App() {
          const avail = UPGRADES[item.type] || [];
          item.upgrades.forEach(uid => {
             const u = avail.find(x => x.id === uid);
+            // Grid Ops handled globally, not per item value display usually, but for internal calc ok
             if(u && item.type !== 'meter') val *= u.multiplier;
          });
       }
@@ -734,28 +746,52 @@ export default function App() {
 
       if (def.type === 'gen') {
         if (item.type === 'solar') {
+          // Solar Synergy: +10% per adjacent solar
           const solarNeighbors = neighbors.filter(n => n.type === 'solar').length;
           if (solarNeighbors > 0) val *= (1 + (solarNeighbors * 0.1));
+          
+          // Negative Synergy: Shadow from Apartments/Office
           if (neighbors.some(n => n.type === 'apartment' || n.type === 'office')) val *= 0.9;
+        
         } else if (item.type === 'wind') {
+          // Positive Synergy: Open Space (No neighbors)
           if (neighbors.length === 0) val *= 1.1;
+          
+          // Negative Synergy: Turbulence (Adjacent Wind or Apartment)
           if (neighbors.some(n => n.type === 'wind' || n.type === 'apartment')) val *= 0.8;
+          
         } else if (item.type === 'hydro') {
+          // Hydro Synergy: Rain Boost
           if (weather.name === 'Rainy') val *= 1.2;
         } 
+        
         val *= globalModifiers.genEfficiency;
       } else if (def.type === 'load') {
         val *= globalModifiers.loadReduction;
       } else if (def.type === 'store') {
-        // Battery Logic: Calculates CAPACITY now, not load reduction
-        // 1. Winter Penalty
-        if (season.name === 'Winter') val *= 0.9;
-        // 2. Degradation
-        const age = month - (item.builtMonth || 1);
+        // Battery Logic
+        
+        // Calculate age in months. Default to current month if undefined to prevent errors.
+        const builtMonth = item.builtMonth ?? month;
+        const age = month - builtMonth;
+        
+        // FIX: Capacity is 100% in the month it is built (age 0).
+        // 10% efficiency loss applies from month 1 onwards (age > 0).
         if (age > 0) {
-           val *= Math.max(0.1, 1 - (age * 0.05));
+           val *= 0.9;
+        }
+
+        // Winter Penalty (Physics: cold reduces effective chemical capacity)
+        if (season.name === 'Winter') val *= 0.9;
+        
+        // Long term degradation after 1 year
+        if (age > 12) {
+           val *= Math.max(0.5, 1 - ((age - 12) * 0.02));
         }
       }
+
+      // SAFETY: Ensure val is not NaN
+      if (isNaN(val)) return 0;
 
       return val;
   };
@@ -763,7 +799,7 @@ export default function App() {
   const calculateStats = useMemo(() => {
     let totalGen = 0;
     let totalLoad = 0;
-    let totalCapacity = 0;
+    let totalStorage = 0;
     let upkeep = 0;
     
     state.gridItems.forEach(item => {
@@ -774,9 +810,10 @@ export default function App() {
 
       if (def.type === 'gen') totalGen += val;
       else if (def.type === 'load') totalLoad += val;
-      else if (def.type === 'store') totalCapacity += val;
+      else if (def.type === 'store') totalStorage += val;
     });
 
+    // Grid Ops Global Upgrades
     const gridOps = state.gridItems.find(i => i.type === 'meter');
     if (gridOps && gridOps.upgrades) {
         if (gridOps.upgrades.includes('ai_bal')) totalLoad *= 0.95;
@@ -784,16 +821,32 @@ export default function App() {
         if (gridOps.upgrades.includes('super_cond')) totalGen *= 1.05;
     }
 
+    // Synergy
     const hasSolar = state.gridItems.some(i => i.type === 'solar');
     const hasWind = state.gridItems.some(i => i.type === 'wind');
     if (hasSolar && hasWind) totalGen *= 1.1;
 
-    // Grid Status Logic: Off-Grid if Generation + Current Charge can cover load
-    const potentialPower = totalGen + state.batteryCharge;
-    const isOffGrid = potentialPower >= totalLoad;
+    // Grid Status Logic
+    const isOffGrid = totalGen >= totalLoad;
 
-    return { totalGen, totalLoad, totalCapacity, upkeep, synergyActive: hasSolar && hasWind, isOffGrid };
-  }, [state.gridItems, state.weather, state.month, globalModifiers, state.batteryCharge]);
+    // Sanitize totals
+    if (isNaN(totalGen)) totalGen = 0;
+    if (isNaN(totalLoad)) totalLoad = 0;
+    if (isNaN(totalStorage)) totalStorage = 0;
+
+    return { totalGen, totalLoad, upkeep, synergyActive: hasSolar && hasWind, isOffGrid, totalCapacity: totalStorage };
+  }, [state.gridItems, state.weather, state.month, globalModifiers]);
+
+  // Effect to notify synergy
+  useEffect(() => {
+    if (calculateStats.synergyActive && !state.synergyActive) {
+      showToast("⚡ SYNERGY ACTIVE: Wind + Solar Bonus!", 'success');
+      playSound('success');
+      setState(s => ({...s, synergyActive: true}));
+    } else if (!calculateStats.synergyActive && state.synergyActive) {
+      setState(s => ({...s, synergyActive: false}));
+    }
+  }, [calculateStats.synergyActive]);
 
   // --- ACTIONS ---
   const startGame = (scenario: 'urban' | 'rural', isTutorial = false) => {
@@ -801,14 +854,18 @@ export default function App() {
     const isUrban = scenario === 'urban';
     const size = isUrban ? GRID_SIZE_URBAN : GRID_SIZE_RURAL;
     const center = Math.floor(size / 2);
+    
+    // Reset Global Modifiers
     setGlobalModifiers({ genEfficiency: 1.0, loadReduction: 1.0 });
 
+    // Initial Items
     const initialItems: GridItem[] = [
       { id: 'meter-main', type: 'meter', x: center, y: center, locked: true, upgrades: [], builtMonth: 1 }
     ];
 
     if (isUrban) {
-      initialItems.push(
+      // DENSE URBAN LAYOUT (Challenge: High Load)
+      const urbanBuildings: GridItem[] = [
          { id: 'u-fac-1', type: 'factory', x: 0, y: 0, locked: true, upgrades: [], builtMonth: 1 },
          { id: 'u-fac-2', type: 'factory', x: 1, y: 0, locked: true, upgrades: [], builtMonth: 1 },
          { id: 'u-off-1', type: 'office', x: size-1, y: 0, locked: true, upgrades: [], builtMonth: 1 },
@@ -818,9 +875,11 @@ export default function App() {
          { id: 'u-apt-3', type: 'apartment', x: center-1, y: center-1, locked: true, upgrades: [], builtMonth: 1 },
          { id: 'u-apt-4', type: 'apartment', x: center+1, y: center+1, locked: true, upgrades: [], builtMonth: 1 },
          { id: 'u-off-2', type: 'office', x: size-2, y: 1, locked: true, upgrades: [], builtMonth: 1 },
-      );
+      ];
+      initialItems.push(...urbanBuildings);
     } else {
-      initialItems.push(
+      // DENSE RURAL LAYOUT (Challenge: Distance + scattered loads)
+      const ruralBuildings: GridItem[] = [
         { id: 'r-milk-1', type: 'milk_factory', x: size-2, y: size-2, locked: true, upgrades: [], builtMonth: 1 },
         { id: 'r-barn-1', type: 'barn', x: 1, y: 1, locked: true, upgrades: [], builtMonth: 1 },
         { id: 'r-barn-2', type: 'barn', x: 2, y: 1, locked: true, upgrades: [], builtMonth: 1 },
@@ -830,14 +889,15 @@ export default function App() {
         { id: 'r-house-3', type: 'house', x: size-2, y: 1, locked: true, upgrades: [], builtMonth: 1 },
         { id: 'r-green-2', type: 'greenhouse', x: 5, y: 8, locked: true, upgrades: [], builtMonth: 1 },
         { id: 'r-barn-3', type: 'barn', x: 6, y: 8, locked: true, upgrades: [], builtMonth: 1 },
-      );
+      ];
+      initialItems.push(...ruralBuildings);
     }
 
     setState(prev => ({
       ...prev,
       screen: 'game',
       scenario,
-      credits: isTutorial ? 3000 : (isUrban ? 2000 : 1800),
+      credits: isTutorial ? 5000 : (isUrban ? 4000 : 2800),
       score: 0,
       month: 1,
       gridItems: initialItems,
@@ -847,53 +907,52 @@ export default function App() {
       inspectedItemId: null,
       tutorialStep: isTutorial ? 1 : 0,
       usedQuizIds: [],
-      batteryCharge: 0 // Start Empty
+      batteryCharge: 0
     }));
   };
 
   const handleNextMonth = () => {
     const { totalGen, totalLoad, upkeep, isOffGrid, totalCapacity } = calculateStats;
-    let currentCharge = state.batteryCharge;
-    
-    // ENERGY SIMULATION
     const balance = totalGen - totalLoad;
-    let usedEnergy = 0;
-    let storedEnergy = 0;
     
+    // Battery Logic: Charge or Discharge
+    // Ensure currentCharge is a number (handle NaN case)
+    let currentCharge = isNaN(state.batteryCharge) ? 0 : state.batteryCharge;
+    
+    let storedEnergyDelta = 0;
+    let usedEnergy = 0;
+
+    // Safety: Ensure totalCapacity is not NaN
+    const safeCapacity = isNaN(totalCapacity) ? 0 : totalCapacity;
+
     if (balance > 0) {
         // Surplus: Charge Battery
-        const chargeSpace = totalCapacity - currentCharge;
-        const chargeAmount = Math.min(chargeSpace, balance);
+        const space = safeCapacity - currentCharge;
+        const chargeAmount = Math.min(balance, Math.max(0, space)); // Ensure space not negative
         currentCharge += chargeAmount;
-        storedEnergy = chargeAmount;
+        storedEnergyDelta = chargeAmount;
     } else if (balance < 0) {
-        // Deficit: Drain Battery
+        // Deficit: Discharge Battery
         const deficit = Math.abs(balance);
-        const dischargeAmount = Math.min(currentCharge, deficit);
+        const dischargeAmount = Math.min(deficit, currentCharge);
         currentCharge -= dischargeAmount;
         usedEnergy = dischargeAmount;
     }
+    
+    // Cap charge just in case
+    currentCharge = Math.min(currentCharge, safeCapacity);
+    
+    const effectiveBalance = balance > 0 ? (balance - storedEnergyDelta) : (balance + usedEnergy);
 
-    // Ensure battery doesn't exceed cap (in case capacity shrank due to decay/weather)
-    if (currentCharge > totalCapacity) currentCharge = totalCapacity;
-
-    // Financials
-    // Sold = Surplus remaining AFTER charging batteries
-    const netSurplus = Math.max(0, balance - storedEnergy);
-    // Unmet Load = Deficit remaining AFTER discharging batteries
-    const unmetLoad = Math.max(0, Math.abs(balance) - usedEnergy);
-
+    // Income Calculation
     let income = 0;
     let rating = 100;
     
-    if (unmetLoad === 0) {
-      // All load met (either by Gen directly or Battery)
-      // Selling only true excess
-      income = 1200 + (netSurplus * 2.5);
+    if (effectiveBalance >= 0) {
+      income = 1500 + (effectiveBalance * 3.0);
     } else {
-      // Buying Emergency Power for Unmet Load
-      income = 400; 
-      const deficitPct = unmetLoad / (totalLoad || 1);
+      income = 500;
+      const deficitPct = Math.abs(effectiveBalance) / (totalLoad || 1);
       rating = Math.max(0, 100 - (deficitPct * 150));
     }
     
@@ -901,6 +960,7 @@ export default function App() {
     const roundedUpkeep = Math.floor(upkeep);
     const roundedRating = Math.floor(rating);
 
+    // Pick Event
     let event: any = null;
     if (state.month >= 5 && Math.random() < 0.3) {
        event = EVENTS.find(e => e.id === 'blackout');
@@ -911,19 +971,19 @@ export default function App() {
     const availableQuestions = QUIZ_QUESTIONS.filter(q => !state.usedQuizIds.includes(q.id));
     const quiz = availableQuestions.length > 0 
        ? availableQuestions[Math.floor(Math.random() * availableQuestions.length)]
-       : QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)];
+       : QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)]; 
 
     setState(prev => ({
       ...prev,
-      screen: 'quiz',
-      batteryCharge: currentCharge, // Update charge state
+      screen: 'quiz', 
+      batteryCharge: currentCharge,
       lastMonthStats: {
         income: roundedIncome,
         upkeep: roundedUpkeep,
         rating: roundedRating,
         isOffGrid,
-        storedEnergy,
-        usedEnergy
+        storedEnergy: storedEnergyDelta > 0 ? storedEnergyDelta : 0, 
+        usedEnergy: usedEnergy 
       },
       currentQuiz: quiz,
       pendingEvent: event,
@@ -935,7 +995,7 @@ export default function App() {
   const handleQuizAnswer = (correct: boolean) => {
     setState(prev => ({
       ...prev,
-      screen: 'report', 
+      screen: 'report', // Go to report after quiz
       quizResult: {
         correct,
         reward: correct ? 300 : 0
@@ -949,13 +1009,16 @@ export default function App() {
       let nextScore = prev.score;
       const { income, upkeep, rating } = prev.lastMonthStats!;
 
+      // 1. Apply Monthly Net
       nextCredits += (income - upkeep);
-      nextScore += rating;
+      nextScore += rating; // Full rating points
 
+      // 2. Apply Quiz Reward
       if (prev.quizResult?.correct) {
         nextCredits += prev.quizResult.reward;
       }
 
+      // 3. Apply Event Choice (Instant Effects)
       let destructionId: string | null = null;
       if (choiceIndex !== undefined && prev.pendingEvent) {
          const evt = prev.pendingEvent;
@@ -965,6 +1028,7 @@ export default function App() {
          if (effect.credits !== undefined) nextCredits = effect.credits;
          if (effect.score !== undefined) nextScore = effect.score;
 
+         // Handle Permanent Global Modifiers
          if (evt.id === 'maintenance' && choiceIndex === 1) {
             setGlobalModifiers(gm => ({ ...gm, genEfficiency: gm.genEfficiency + 0.05 }));
          }
@@ -972,12 +1036,15 @@ export default function App() {
             setGlobalModifiers(gm => ({ ...gm, loadReduction: gm.loadReduction * 0.95 }));
          }
          
+         // Handle Blackout Buff
          if (evt.id === 'blackout' && choiceIndex === 0) {
+            // Check charge directly from state, consistent with constants.ts
             if (prev.batteryCharge > 150) {
                setGlobalModifiers(gm => ({ ...gm, loadReduction: gm.loadReduction * 0.95 }));
             }
          }
          
+         // Handle Building Destruction (Earthquake Negligence)
          if (evt.id === 'disaster' && choiceIndex === 1) {
              const destructible = prev.gridItems.filter(i => i.type !== 'meter');
              if (destructible.length > 0) {
@@ -987,8 +1054,10 @@ export default function App() {
          }
       }
 
+      // Prevent negative score
       nextScore = Math.max(0, nextScore);
 
+      // 4. Check End Game Conditions
       if (nextCredits < 0) {
         playSound('fail');
         return { ...prev, screen: 'gameover', credits: nextCredits, score: nextScore };
@@ -998,6 +1067,7 @@ export default function App() {
         return { ...prev, screen: 'victory', credits: nextCredits, score: nextScore };
       }
 
+      // 5. Advance Month
       const nextMonth = prev.month + 1;
       const nextWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
       
@@ -1018,14 +1088,16 @@ export default function App() {
         currentQuiz: null,
         lastMonthStats: null,
         quizResult: undefined,
-        tutorialStep: 0
+        tutorialStep: 0 // Ensure tutorial resets if hanging
       };
     });
   };
 
   const handleMapClick = (x: number, y: number) => {
+    // Check bounds
     if (x < 0 || x >= state.gridSize || y < 0 || y >= state.gridSize) return;
 
+    // Check existing (Multi-tile support)
     const existing = state.gridItems.find(i => {
        const def = ELEMENTS[i.type];
        const w = def.width || 1;
@@ -1033,6 +1105,7 @@ export default function App() {
        return x >= i.x && x < i.x + w && y >= i.y && y < i.y + h;
     });
 
+    // Tool: Delete
     if (state.selectedTool === 'delete') {
       if (existing) {
         if (existing.locked) {
@@ -1042,18 +1115,20 @@ export default function App() {
           showToast("🚫 Cannot demolish Grid Ops!", 'error');
           playSound('error');
         } else {
+          // Refund 50%
           const cost = ELEMENTS[existing.type].cost;
           setState(prev => ({
             ...prev,
             credits: prev.credits + Math.floor(cost * 0.5),
             gridItems: prev.gridItems.filter(i => i.id !== existing.id)
           }));
-          playSound('build');
+          playSound('build'); // Reverse build sound?
         }
       }
       return;
     }
 
+    // Tool: Inspect/Upgrade (No tool selected or clicking existing)
     if (!state.selectedTool || existing) {
       if (existing) {
         setState(prev => ({ ...prev, inspectedItemId: existing.id }));
@@ -1062,22 +1137,27 @@ export default function App() {
       return;
     }
 
+    // Tool: Build
     if (state.selectedTool && !existing) {
       const def = ELEMENTS[state.selectedTool];
       let cost = def.cost;
       const w = def.width || 1;
       const h = def.height || 1;
 
+      // Check boundary for multi-tile
       if (x + w > state.gridSize || y + h > state.gridSize) {
          showToast("🚫 Too close to edge!", 'error');
          playSound('error');
          return;
       }
       
+      // Check collision for multi-tile area
       const collision = state.gridItems.some(i => {
          const iDef = ELEMENTS[i.type];
          const iW = iDef.width || 1;
          const iH = iDef.height || 1;
+         
+         // AABB Collision
          return (x < i.x + iW && x + w > i.x && y < i.y + iH && y + h > i.y);
       });
       
@@ -1087,9 +1167,11 @@ export default function App() {
          return;
       }
 
+      // Rural Transmission cost logic
       if (state.scenario === 'rural') {
         const center = Math.floor(state.gridSize / 2);
         const dist = Math.sqrt(Math.pow(x - center, 2) + Math.pow(y - center, 2));
+        
         if (dist > RURAL_TRANSMISSION_DISTANCE_THRESHOLD) {
           cost += Math.floor((dist - RURAL_TRANSMISSION_DISTANCE_THRESHOLD) * WIRE_COST_PER_UNIT);
         }
@@ -1119,6 +1201,7 @@ export default function App() {
 
   const applyUpgrade = (upgradeId: string, cost: number) => {
     if (!state.inspectedItemId) return;
+    
     setState(prev => ({
       ...prev,
       credits: prev.credits - cost,
@@ -1133,7 +1216,9 @@ export default function App() {
 
   const sellUpgrade = (upgradeId: string, cost: number) => {
     if (!state.inspectedItemId) return;
+
     const refund = Math.floor(cost * 0.7);
+    
     setState(prev => ({
       ...prev,
       credits: prev.credits + refund,
@@ -1172,12 +1257,14 @@ export default function App() {
      }
   };
 
-  const cellSize = 60; 
+  // --- RENDERING ---
+  const cellSize = 60; // Pixels
   const mapSizePx = state.gridSize * cellSize;
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0f172a] text-white overflow-hidden relative selection:bg-yellow-500/30">
       
+      {/* GLOBAL TOAST */}
       {toast && (
         <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-8 py-4 rounded-full shadow-2xl animate-fade-in-up flex items-center gap-3 border transition-all ${
             toast.type === 'success' ? 'bg-green-600/90 border-green-400 scale-105' : 
@@ -1191,6 +1278,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- MENU SCREEN --- */}
       {state.screen === 'menu' && (
         <div className="flex-1 flex items-center justify-center relative">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80')] bg-cover opacity-20"></div>
@@ -1221,6 +1309,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- LEADERBOARD SCREEN --- */}
       {state.screen === 'leaderboard' && (
          <LeaderboardScreen 
             data={leaderboard} 
@@ -1228,6 +1317,7 @@ export default function App() {
          />
       )}
 
+      {/* --- SCENARIO SELECT --- */}
       {state.screen === 'scenario' && (
         <div className="flex-1 flex items-center justify-center relative">
           <div className="bg-slate-900 p-8 rounded-2xl border border-slate-700 max-w-3xl w-full">
@@ -1252,8 +1342,10 @@ export default function App() {
         </div>
       )}
 
+      {/* --- GAME UI --- */}
       {(state.screen === 'game' || state.screen === 'report' || state.screen === 'quiz') && (
         <>
+          {/* HEADER */}
           <header className="h-16 bg-slate-900/90 backdrop-blur border-b border-slate-700 flex items-center justify-between px-6 z-20">
             <div className="flex items-center gap-4">
               <div className="font-tech text-xl text-blue-400 flex items-center gap-2">
@@ -1277,17 +1369,37 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button onClick={() => setState(s => ({...s, soundEnabled: !s.soundEnabled}))} className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors">{state.soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}</button>
-              <button onClick={() => setShowHelp(true)} className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"><HelpCircle size={20} /></button>
-              <button onClick={() => setState(s => ({...s, screen: 'menu'}))} className="p-2 text-gray-400 hover:text-red-400 hover:bg-slate-800 rounded-full transition-colors"><Home size={20} /></button>
+              <button 
+                onClick={() => setState(s => ({...s, soundEnabled: !s.soundEnabled}))} 
+                className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+                title={state.soundEnabled ? "Mute" : "Unmute"}
+              >
+                {state.soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+              </button>
+              <button 
+                onClick={() => setShowHelp(true)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <HelpCircle size={20} />
+              </button>
+              <button 
+                onClick={() => setState(s => ({...s, screen: 'menu'}))}
+                className="p-2 text-gray-400 hover:text-red-400 hover:bg-slate-800 rounded-full transition-colors"
+                title="Quit to Menu"
+              >
+                <Home size={20} />
+              </button>
             </div>
           </header>
 
           <main className="flex-1 flex overflow-hidden relative">
+            
+            {/* FLOATING WEATHER WIDGET OVERLAY */}
             <div className="absolute top-6 left-6 z-30 bg-slate-900/90 backdrop-blur border border-slate-600 p-4 rounded-xl shadow-2xl max-w-xs animate-fade-in pointer-events-none select-none">
               <div className="text-xs font-bold text-blue-400 mb-1 uppercase tracking-widest">
                 {SEASONS[Math.floor((state.month - 1) / 3) % 4].name}
               </div>
+              
               <div className="flex items-center gap-3 mb-1">
                  {state.weather.name === 'Clear Skies' && <Sun className="text-yellow-400" size={24} />}
                  {state.weather.name === 'Overcast' && <Cloud className="text-gray-400" size={24} />}
@@ -1298,43 +1410,94 @@ export default function App() {
               <p className="text-sm text-gray-300 italic">"{state.weather.tip}"</p>
             </div>
 
+            {/* MAP AREA */}
             <div className="flex-1 relative bg-[#0B1120] flex items-center justify-center overflow-auto p-8 cursor-grab active:cursor-grabbing grid-scroll">
-               <div className="relative bg-slate-800/50 shadow-2xl border-2 border-slate-700 transition-all duration-500" style={{ width: mapSizePx, height: mapSizePx }}>
-                 <div className="absolute inset-0 opacity-20 pointer-events-none z-0" style={{ backgroundImage: `linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)`, backgroundSize: `${cellSize}px ${cellSize}px` }} />
+               <div 
+                 className="relative bg-slate-800/50 shadow-2xl border-2 border-slate-700 transition-all duration-500"
+                 style={{ width: mapSizePx, height: mapSizePx }}
+               >
+                 {/* GRID LINES */}
+                 <div className="absolute inset-0 opacity-20 pointer-events-none z-0" 
+                      style={{ 
+                        backgroundImage: `linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)`, 
+                        backgroundSize: `${cellSize}px ${cellSize}px`
+                      }} 
+                 />
+                 
+                 {/* WIRES LAYER - Minimum Spanning Tree Logic */}
                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-60">
                    {state.gridItems.length > 1 && (() => {
+                      // MST Logic for visuals
                       return state.gridItems.map((item, idx) => {
-                         if (item.type === 'meter') return null;
+                         if (item.type === 'meter') return null; // Meter doesn't connect 'out'
+                         
                          const def = ELEMENTS[item.type];
-                         const centerX = item.x * cellSize + ((def.width||1) * cellSize) / 2;
-                         const centerY = item.y * cellSize + ((def.height||1) * cellSize) / 2;
-                         let nearest = null; let minDist = Infinity;
+                         const w = def.width || 1;
+                         const h = def.height || 1;
+                         const centerX = item.x * cellSize + (w * cellSize) / 2;
+                         const centerY = item.y * cellSize + (h * cellSize) / 2;
+
+                         // Find nearest neighbor center
+                         let nearest = null;
+                         let minDist = Infinity;
+                         
                          state.gridItems.forEach((other, otherIdx) => {
                             if (idx === otherIdx) return;
                             const oDef = ELEMENTS[other.type];
                             const oCenterX = other.x * cellSize + (oDef.width||1)*cellSize/2;
                             const oCenterY = other.y * cellSize + (oDef.height||1)*cellSize/2;
+                            
                             const d = Math.sqrt(Math.pow(centerX - oCenterX, 2) + Math.pow(centerY - oCenterY, 2));
-                            if (d < minDist) { minDist = d; nearest = { x: oCenterX, y: oCenterY }; }
+                            if (d < minDist) {
+                               minDist = d;
+                               nearest = { x: oCenterX, y: oCenterY };
+                            }
                          });
+
                          if (nearest) {
                             const isRural = state.scenario === 'rural';
-                            return <line key={`wire-${item.id}`} x1={centerX} y1={centerY} x2={(nearest as any).x} y2={(nearest as any).y} stroke={isRural ? "#facc15" : "#06b6d4"} strokeWidth="2" strokeDasharray={isRural ? "6 4" : undefined} />;
+                            return (
+                               <line 
+                                 key={`wire-${item.id}`} 
+                                 x1={centerX} y1={centerY} x2={(nearest as any).x} y2={(nearest as any).y} 
+                                 stroke={isRural ? "#facc15" : "#06b6d4"} 
+                                 strokeWidth="2" 
+                                 strokeDasharray={isRural ? "6 4" : undefined}
+                               />
+                            );
                          }
                          return null;
                       });
                    })()}
                  </svg>
+                 
+                 {/* CELLS CLICK TARGETS */}
                  {Array.from({ length: state.gridSize * state.gridSize }).map((_, idx) => {
                    const x = idx % state.gridSize;
                    const y = Math.floor(idx / state.gridSize);
+                   
+                   // Hover logic for Rural cost preview
                    const center = Math.floor(state.gridSize / 2);
                    const dist = Math.sqrt(Math.pow(x - center, 2) + Math.pow(y - center, 2));
                    const isExtraCost = state.scenario === 'rural' && dist > RURAL_TRANSMISSION_DISTANCE_THRESHOLD;
+
                    return (
-                     <div key={idx} onClick={() => handleMapClick(x, y)} title={isExtraCost ? `Extra Wiring Cost` : undefined} className={`absolute hover:bg-white/5 transition-colors z-10 ${isExtraCost && state.selectedTool && state.selectedTool !== 'delete' ? 'hover:bg-yellow-500/20' : ''}`} style={{ width: cellSize, height: cellSize, left: x * cellSize, top: y * cellSize }} />
+                     <div 
+                       key={idx}
+                       onClick={() => handleMapClick(x, y)}
+                       title={isExtraCost ? `Extra Wiring Cost: $${Math.floor((dist - RURAL_TRANSMISSION_DISTANCE_THRESHOLD) * WIRE_COST_PER_UNIT)}` : undefined}
+                       className={`absolute hover:bg-white/5 transition-colors z-10 ${isExtraCost && state.selectedTool && state.selectedTool !== 'delete' ? 'hover:bg-yellow-500/20' : ''}`}
+                       style={{ 
+                         width: cellSize, 
+                         height: cellSize, 
+                         left: x * cellSize, 
+                         top: y * cellSize 
+                       }}
+                     />
                    );
                  })}
+
+                 {/* ITEMS */}
                  {state.gridItems.map(item => {
                    const def = ELEMENTS[item.type];
                    let borderColor = 'border-gray-600';
@@ -1342,21 +1505,57 @@ export default function App() {
                    if (def.type === 'load') borderColor = 'border-red-500';
                    if (def.type === 'store') borderColor = 'border-blue-500';
                    if (def.type === 'util') borderColor = 'border-yellow-500';
+
                    const kwValue = calculateItemStats(item, state.gridItems, state.weather, state.month, globalModifiers);
-                   const w = def.width || 1; const h = def.height || 1;
+                   const w = def.width || 1;
+                   const h = def.height || 1;
+
                    return (
-                     <div key={item.id} onClick={(e) => { e.stopPropagation(); if (state.selectedTool === 'delete') { handleMapClick(item.x, item.y); } else { setState(s => ({...s, inspectedItemId: item.id})); playSound('click'); }}} className={`absolute m-0.5 rounded-md bg-slate-900 border-2 ${borderColor} flex items-center justify-center shadow-lg hover:brightness-110 transition-transform cursor-pointer z-20 overflow-hidden`} style={{ width: (cellSize * w) - 4, height: (cellSize * h) - 4, left: item.x * cellSize, top: item.y * cellSize }}>
-                       <div className="scale-75">{renderGridIcon(item.type)}</div>
-                       <div className={`absolute bottom-0 left-0 w-full text-[8px] font-bold text-center bg-black/70 backdrop-blur-sm py-0.5 ${def.type === 'gen' ? 'text-green-400' : def.type === 'load' ? 'text-red-400' : 'text-blue-400'}`}>{item.type !== 'meter' ? `${Math.round(kwValue)} kW` : 'OPS'}</div>
+                     <div
+                       key={item.id}
+                       onClick={(e) => { 
+                         e.stopPropagation(); 
+                         if (state.selectedTool === 'delete') {
+                           // For delete, handle at logic level but pass event
+                           handleMapClick(item.x, item.y);
+                         } else {
+                           setState(s => ({...s, inspectedItemId: item.id})); 
+                           playSound('click'); 
+                         }
+                       }}
+                       className={`absolute m-0.5 rounded-md bg-slate-900 border-2 ${borderColor} flex items-center justify-center shadow-lg hover:brightness-110 transition-transform cursor-pointer z-20 overflow-hidden`}
+                       style={{ 
+                         width: (cellSize * w) - 4, 
+                         height: (cellSize * h) - 4, 
+                         left: item.x * cellSize, 
+                         top: item.y * cellSize 
+                       }}
+                     >
+                       <div className="scale-75">
+                         {renderGridIcon(item.type)}
+                       </div>
+                       
+                       {/* KW DISPLAY */}
+                       <div className={`absolute bottom-0 left-0 w-full text-[8px] font-bold text-center bg-black/70 backdrop-blur-sm py-0.5 ${def.type === 'gen' ? 'text-green-400' : def.type === 'load' ? 'text-red-400' : 'text-blue-400'}`}>
+                          {item.type !== 'meter' ? `${Math.round(kwValue)} ${def.type === 'store' ? 'kWh' : 'kW'}` : 'OPS'}
+                       </div>
+
                        {item.locked && <span className="absolute top-0 right-0 text-[8px]">🔒</span>}
-                       {(item.upgrades?.length || 0) > 0 && (<div className="absolute top-0 left-0 flex p-0.5 gap-0.5">{item.upgrades!.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full bg-yellow-400 border border-black" />)}</div>)}
+                       {(item.upgrades?.length || 0) > 0 && (
+                         <div className="absolute top-0 left-0 flex p-0.5 gap-0.5">
+                            {item.upgrades!.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full bg-yellow-400 border border-black" />)}
+                         </div>
+                       )}
                      </div>
                    );
                  })}
                </div>
             </div>
 
+            {/* SIDEBAR */}
             <div className="w-80 bg-slate-900/95 backdrop-blur border-l border-slate-700 flex flex-col z-20">
+              
+              {/* METRICS */}
               <div className="p-4 border-b border-slate-700 bg-slate-800/30">
                 <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase">Real-time Load Balance</h3>
                 <div className="space-y-3">
@@ -1366,13 +1565,24 @@ export default function App() {
                       <span className="text-green-400 font-bold">GEN</span>
                     </div>
                     <div className="h-4 bg-slate-800 rounded-full overflow-hidden flex relative border border-slate-600">
+                      {/* Center Marker */}
                       <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/30 z-10"></div>
-                      <div className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-500" style={{ width: `${Math.min(100, (calculateStats.totalLoad / (calculateStats.totalGen + calculateStats.totalLoad || 1)) * 100)}%` }} />
-                      <div className="h-full bg-gradient-to-l from-green-600 to-green-400 flex-1 transition-all duration-500" />
+                      
+                      {/* Load Bar */}
+                      <div 
+                        className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-500" 
+                        style={{ width: `${Math.min(100, (calculateStats.totalLoad / (calculateStats.totalGen + calculateStats.totalLoad || 1)) * 100)}%` }} 
+                      />
+                      <div 
+                        className="h-full bg-gradient-to-l from-green-600 to-green-400 flex-1 transition-all duration-500" 
+                        // The rest is Gen
+                      />
                     </div>
                     <div className="flex justify-between text-xs font-mono">
                       <span>{Math.round(calculateStats.totalLoad)} kW</span>
-                      <span className={calculateStats.totalGen >= calculateStats.totalLoad ? "text-green-400" : "text-red-400"}>{calculateStats.totalGen >= calculateStats.totalLoad ? "+" : ""}{Math.round(calculateStats.totalGen - calculateStats.totalLoad)} kW</span>
+                      <span className={calculateStats.totalGen >= calculateStats.totalLoad ? "text-green-400" : "text-red-400"}>
+                        {calculateStats.totalGen >= calculateStats.totalLoad ? "+" : ""}{Math.round(calculateStats.totalGen - calculateStats.totalLoad)} kW
+                      </span>
                       <span>{Math.round(calculateStats.totalGen)} kW</span>
                     </div>
                   </div>
@@ -1381,10 +1591,12 @@ export default function App() {
                   <div className="space-y-1">
                      <div className="flex justify-between text-xs">
                         <span className="text-blue-300 font-bold flex items-center gap-1"><BatteryCharging size={12} /> STORAGE</span>
-                        <span className="text-blue-300">{Math.round(state.batteryCharge)} / {Math.round(calculateStats.totalCapacity)} kWh</span>
+                        <span className="text-blue-300">
+                          {Math.round(isNaN(state.batteryCharge) ? 0 : state.batteryCharge)} / {Math.round(isNaN(calculateStats.totalCapacity) ? 0 : calculateStats.totalCapacity)} kWh
+                        </span>
                      </div>
                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600">
-                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${calculateStats.totalCapacity > 0 ? (state.batteryCharge / calculateStats.totalCapacity) * 100 : 0}%` }}></div>
+                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(calculateStats.totalCapacity || 0) > 0 ? ((state.batteryCharge || 0) / calculateStats.totalCapacity) * 100 : 0}%` }}></div>
                      </div>
                   </div>
 
@@ -1394,22 +1606,46 @@ export default function App() {
                           {calculateStats.isOffGrid ? 'OFF-GRID' : 'ON-GRID'}
                       </span>
                   </div>
-                  {calculateStats.synergyActive && (<div className="bg-blue-900/30 border border-blue-500/30 p-2 rounded text-xs text-blue-200 text-center animate-pulse">⚡ Hybrid Synergy Active (+10%)</div>)}
+
+                  {calculateStats.synergyActive && (
+                    <div className="bg-blue-900/30 border border-blue-500/30 p-2 rounded text-xs text-blue-200 text-center animate-pulse">
+                      ⚡ Hybrid Synergy Active (+10%)
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* TOOLS */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 grid-scroll">
                 <div>
                   <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase">Construction</h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {(Object.values(ELEMENTS) as ElementDef[]).filter(e => e.type !== 'load' && e.id !== 'meter').map(el => (
-                      <button key={el.id} onClick={() => { setState(s => ({...s, selectedTool: el.id as ElementType})); playSound('click'); }} className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === el.id ? 'bg-blue-600 border-blue-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}>
+                    {(Object.values(ELEMENTS) as ElementDef[])
+                        // Filter out UTIL and LOAD (Consumers). User can only build Gen/Store.
+                        // Allow UTIL construction if any exist (e.g. meter is util but we filter it by ID)
+                        .filter(e => e.type !== 'load' && e.id !== 'meter')
+                        .map(el => (
+                      <button
+                        key={el.id}
+                        onClick={() => { setState(s => ({...s, selectedTool: el.id as ElementType})); playSound('click'); }}
+                        className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === el.id ? 'bg-blue-600 border-blue-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}
+                      >
                         <span className="text-2xl">{el.icon}</span>
                         <span className="text-xs font-bold text-center">{el.name}</span>
+                        
+                        <span className={`text-[10px] font-bold ${el.type === 'gen' ? 'text-green-400' : 'text-blue-400'}`}>
+                           {el.type === 'gen' && `+${el.baseValue} kW`}
+                           {el.type === 'store' && `${el.baseValue} kWh`}
+                        </span>
+
                         <span className="text-[10px] bg-slate-900/50 px-2 py-0.5 rounded text-green-400">${el.cost}</span>
                       </button>
                     ))}
-                    <button onClick={() => { setState(s => ({...s, selectedTool: 'delete'})); playSound('click'); }} className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === 'delete' ? 'bg-red-600 border-red-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}>
+                    
+                    <button
+                      onClick={() => { setState(s => ({...s, selectedTool: 'delete'})); playSound('click'); }}
+                      className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === 'delete' ? 'bg-red-600 border-red-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}
+                    >
                       <Trash2 size={24} />
                       <span className="text-xs font-bold">Demolish</span>
                       <span className="text-[10px] text-gray-500">Refund 50%</span>
@@ -1418,41 +1654,77 @@ export default function App() {
                 </div>
               </div>
 
+              {/* ACTION */}
               <div className="p-4 border-t border-slate-700 bg-slate-800/50">
-                <button onClick={() => { playSound('click'); handleNextMonth(); }} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => { playSound('click'); handleNextMonth(); }}
+                  className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
+                >
                   NEXT MONTH <ArrowRight size={20} />
                 </button>
               </div>
+
             </div>
           </main>
         </>
       )}
 
+      {/* --- MODALS & OVERLAYS --- */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       
       {state.screen === 'game' && state.inspectedItemId && (
-        <UpgradeModal item={state.gridItems.find(i => i.id === state.inspectedItemId)!} credits={state.credits} onClose={() => setState(s => ({...s, inspectedItemId: null}))} onUpgrade={applyUpgrade} onSell={sellUpgrade} playSound={playSound} />
+        <UpgradeModal 
+          item={state.gridItems.find(i => i.id === state.inspectedItemId)!} 
+          credits={state.credits}
+          onClose={() => setState(s => ({...s, inspectedItemId: null}))}
+          onUpgrade={applyUpgrade}
+          onSell={sellUpgrade}
+          playSound={playSound}
+        />
       )}
 
       {state.screen === 'quiz' && state.currentQuiz && (
-        <QuizModal question={state.currentQuiz} onAnswer={handleQuizAnswer} playSound={playSound} />
+        <QuizModal 
+          question={state.currentQuiz} 
+          onAnswer={handleQuizAnswer}
+          playSound={playSound}
+        />
       )}
 
       {state.screen === 'report' && (
-        <MonthlyReport state={state} onContinue={handleReportContinue} playSound={playSound} showToast={showToast} />
+        <MonthlyReport 
+          state={state} 
+          onContinue={handleReportContinue} 
+          playSound={playSound}
+          showToast={showToast}
+        />
       )}
 
       {state.screen === 'gameover' && (
-        <EndGameScreen type="gameover" stats={{ score: state.score, credits: state.credits, scenario: state.scenario === 'urban' ? 'Urban' : 'Rural' }} onSaveScore={saveScore} onRestart={() => setState(s => ({...s, screen: 'menu'}))} />
+        <EndGameScreen 
+          type="gameover" 
+          stats={{ score: state.score, credits: state.credits, scenario: state.scenario === 'urban' ? 'Urban' : 'Rural' }} 
+          onSaveScore={saveScore}
+          onRestart={() => setState(s => ({...s, screen: 'menu'}))} 
+        />
       )}
 
       {state.screen === 'victory' && (
-        <EndGameScreen type="victory" stats={{ score: state.score, credits: state.credits, scenario: state.scenario === 'urban' ? 'Urban' : 'Rural' }} onSaveScore={saveScore} onRestart={() => setState(s => ({...s, screen: 'menu'}))} />
+        <EndGameScreen 
+          type="victory" 
+          stats={{ score: state.score, credits: state.credits, scenario: state.scenario === 'urban' ? 'Urban' : 'Rural' }} 
+          onSaveScore={saveScore}
+          onRestart={() => setState(s => ({...s, screen: 'menu'}))} 
+        />
       )}
 
       {state.tutorialStep > 0 && (
-        <TutorialOverlay step={state.tutorialStep} onNext={() => setState(prev => ({...prev, tutorialStep: prev.tutorialStep + 1 > 5 ? 0 : prev.tutorialStep + 1}))} />
+        <TutorialOverlay 
+          step={state.tutorialStep} 
+          onNext={() => setState(prev => ({...prev, tutorialStep: prev.tutorialStep + 1 > 5 ? 0 : prev.tutorialStep + 1}))} 
+        />
       )}
+
     </div>
   );
 }

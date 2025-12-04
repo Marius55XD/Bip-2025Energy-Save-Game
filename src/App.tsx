@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ELEMENTS, EVENTS, GRID_SIZE_RURAL, GRID_SIZE_URBAN, RURAL_TRANSMISSION_DISTANCE_THRESHOLD, WIRE_COST_PER_UNIT, SEASONS, WEATHER_TYPES, UPGRADES, QUIZ_QUESTIONS, DEFAULT_LEADERBOARD, PRODUCTION_MATRIX } from './constants';
 import { GameState, GridItem, ElementType, QuizQuestion, LeaderboardEntry, ElementDef } from './types';
@@ -344,7 +345,7 @@ const UpgradeModal = ({ item, onClose, onUpgrade, onSell, credits, playSound }: 
                           }
                         }}
                         disabled={!canAfford}
-                        className={`px-3 py-1 rounded text-xs font-bold ${canAfford ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'} sz-fit min-w-[50px]`}
+                        className={`px-3 py-1 rounded text-xs font-bold ${canAfford ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                       >
                         ${u.cost}
                       </button>
@@ -612,71 +613,6 @@ const LeaderboardScreen = ({ data, onBack }: { data: LeaderboardEntry[], onBack:
   );
 };
 
-// --- COMPONENT: TOOL PREVIEW CARD ---
-const ToolPreviewCard = ({ type, weather, month, globalModifiers, playSound }: { type: ElementType, weather: any, month: number, globalModifiers: any, playSound: any }) => {
-  const def = ELEMENTS[type];
-  if (!def) return null;
-
-  // Simulate calculating stats for this item (no neighbors)
-  // Reuse the logic but stripped down or pass a dummy item
-  const dummyItem: GridItem = { id: 'preview', type: type, x: 0, y: 0, upgrades: [], builtMonth: month };
-  
-  // Calculate value
-  let val = def.baseValue;
-  const seasonIndex = Math.floor((month - 1) / 3) % 4;
-  const season = SEASONS[seasonIndex];
-
-  if (def.type === 'gen' && PRODUCTION_MATRIX[def.id]) {
-      const weatherMap = PRODUCTION_MATRIX[def.id];
-      const multipliers = weatherMap[weather.name] || weatherMap['Clear Skies'];
-      const seasonMod = multipliers ? multipliers[seasonIndex] : 1.0;
-      val *= seasonMod;
-      val *= globalModifiers.genEfficiency;
-  } else if (def.type === 'load') {
-      val *= season.loadMod;
-      if (weather.name === 'Heatwave') val *= 1.2;
-      val *= globalModifiers.loadReduction;
-  } else if (def.type === 'store') {
-      // Show Max Capacity for preview, not current charge or degradation
-      // But maybe apply winter penalty if applicable
-      if (season.name === 'Winter') val *= 0.9;
-  }
-
-  val = Math.round(val);
-
-  return (
-    <div className="absolute bottom-4 right-80 z-40 bg-slate-900/95 backdrop-blur border border-slate-500 rounded-xl p-4 shadow-2xl max-w-xs animate-fade-in-up">
-       <div className="flex items-center gap-3 mb-2 border-b border-slate-700 pb-2">
-          <span className="text-3xl">{def.icon}</span>
-          <div>
-             <h3 className="font-bold text-white text-lg leading-tight">{def.name}</h3>
-             <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${def.type === 'gen' ? 'bg-green-900 text-green-400' : def.type === 'load' ? 'bg-red-900 text-red-400' : 'bg-blue-900 text-blue-400'}`}>
-               {def.type === 'gen' ? 'Generator' : def.type === 'load' ? 'Consumer' : def.type === 'store' ? 'Storage' : 'Utility'}
-             </span>
-          </div>
-       </div>
-       <p className="text-xs text-gray-300 mb-3 italic">{def.description}</p>
-       <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="bg-slate-800 p-2 rounded">
-             <div className="text-xs text-gray-500">Cost</div>
-             <div className="font-bold text-green-400">${def.cost}</div>
-          </div>
-          <div className="bg-slate-800 p-2 rounded">
-             <div className="text-xs text-gray-500">{def.type === 'store' ? 'Capacity' : def.type === 'load' ? 'Proj. Load' : 'Est. Output'}</div>
-             <div className={`font-bold ${def.type === 'load' ? 'text-red-400' : def.type === 'store' ? 'text-blue-400' : 'text-green-400'}`}>
-                {val} {def.type === 'store' ? 'kWh' : 'kW'}
-             </div>
-          </div>
-       </div>
-       {def.type === 'gen' && (
-         <div className="mt-2 text-[10px] text-yellow-500 flex items-center gap-1">
-            <Info size={10} /> Affected by Season & Weather
-         </div>
-       )}
-    </div>
-  );
-};
-
 // --- MAIN APP ---
 export default function App() {
   const { enabled, setEnabled, playSound } = useAudio();
@@ -706,7 +642,6 @@ export default function App() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showHelp, setShowHelp] = useState(false);
   const [toast, setToast] = useState<{msg: string, type: 'info' | 'success' | 'error'} | null>(null);
-  const [hoveredTool, setHoveredTool] = useState<ElementType | null>(null);
   
   // Track global modifiers from events
   const [globalModifiers, setGlobalModifiers] = useState({
@@ -836,19 +771,26 @@ export default function App() {
         val *= globalModifiers.loadReduction;
       } else if (def.type === 'store') {
         // Battery Logic
-        // 1. Efficiency In/Out factor (0.9 * 0.95 approx 0.85 effective storage of rated capacity?) 
-        // Let's just say capacity is reduced by 10% inherent loss
-        val *= 0.9; 
-
-        // 2. Winter Penalty
-        if (season.name === 'Winter') val *= 0.9;
         
-        // 3. Degradation (5% per month)
-        const age = month - (item.builtMonth || 1);
+        // Calculate age in months. Default to current month if undefined to prevent errors.
+        const builtMonth = item.builtMonth || month;
+        const age = month - builtMonth;
+        
+        // Apply 10% efficiency drop only AFTER the first month (wear-in/operational loss)
+        // This ensures new batteries have 100% capacity in the month they are built.
+        // If builtMonth == month, age is 0. Condition fails. Capacity stays 100%.
         if (age > 0) {
-           val *= Math.max(0.1, 1 - (age * 0.05));
+           val *= 0.9;
+        }
+
+        // Long term degradation after 1 year
+        if (age > 12) {
+           val *= Math.max(0.5, 1 - ((age - 12) * 0.02));
         }
       }
+
+      // SAFETY: Ensure val is not NaN
+      if (isNaN(val)) return 0;
 
       return val;
   };
@@ -856,7 +798,7 @@ export default function App() {
   const calculateStats = useMemo(() => {
     let totalGen = 0;
     let totalLoad = 0;
-    let totalCapacity = 0;
+    let totalStorage = 0;
     let upkeep = 0;
     
     state.gridItems.forEach(item => {
@@ -867,7 +809,7 @@ export default function App() {
 
       if (def.type === 'gen') totalGen += val;
       else if (def.type === 'load') totalLoad += val;
-      else if (def.type === 'store') totalCapacity += val;
+      else if (def.type === 'store') totalStorage += val;
     });
 
     // Grid Ops Global Upgrades
@@ -883,12 +825,16 @@ export default function App() {
     const hasWind = state.gridItems.some(i => i.type === 'wind');
     if (hasSolar && hasWind) totalGen *= 1.1;
 
-    // Grid Status Logic: Off-Grid if Generation + Battery Charge covers Load
-    const potentialPower = totalGen + state.batteryCharge;
-    const isOffGrid = potentialPower >= totalLoad;
+    // Grid Status Logic
+    const isOffGrid = totalGen >= totalLoad;
 
-    return { totalGen, totalLoad, totalCapacity, upkeep, synergyActive: hasSolar && hasWind, isOffGrid };
-  }, [state.gridItems, state.weather, state.month, globalModifiers, state.batteryCharge]);
+    // Sanitize totals
+    if (isNaN(totalGen)) totalGen = 0;
+    if (isNaN(totalLoad)) totalLoad = 0;
+    if (isNaN(totalStorage)) totalStorage = 0;
+
+    return { totalGen, totalLoad, upkeep, synergyActive: hasSolar && hasWind, isOffGrid, totalCapacity: totalStorage };
+  }, [state.gridItems, state.weather, state.month, globalModifiers]);
 
   // Effect to notify synergy
   useEffect(() => {
@@ -932,7 +878,6 @@ export default function App() {
       initialItems.push(...urbanBuildings);
     } else {
       // DENSE RURAL LAYOUT (Challenge: Distance + scattered loads)
-      // Replaced Apartments with Houses, Barns, Greenhouses and Milk Factory
       const ruralBuildings: GridItem[] = [
         { id: 'r-milk-1', type: 'milk_factory', x: size-2, y: size-2, locked: true, upgrades: [], builtMonth: 1 },
         { id: 'r-barn-1', type: 'barn', x: 1, y: 1, locked: true, upgrades: [], builtMonth: 1 },
@@ -951,7 +896,7 @@ export default function App() {
       ...prev,
       screen: 'game',
       scenario,
-      credits: isTutorial ? 3000 : (isUrban ? 2000 : 1800), // Boosted credits slightly for denser start
+      credits: isTutorial ? 5000 : (isUrban ? 4000 : 2800),
       score: 0,
       month: 1,
       gridItems: initialItems,
@@ -960,48 +905,53 @@ export default function App() {
       synergyActive: false,
       inspectedItemId: null,
       tutorialStep: isTutorial ? 1 : 0,
-      usedQuizIds: []
+      usedQuizIds: [],
+      batteryCharge: 0
     }));
   };
 
   const handleNextMonth = () => {
     const { totalGen, totalLoad, upkeep, isOffGrid, totalCapacity } = calculateStats;
-    let currentCharge = state.batteryCharge;
-    
-    // ENERGY SIMULATION
     const balance = totalGen - totalLoad;
-    let usedEnergy = 0;
-    let storedEnergy = 0;
     
+    // Battery Logic: Charge or Discharge
+    // Ensure currentCharge is a number (handle NaN case)
+    let currentCharge = isNaN(state.batteryCharge) ? 0 : state.batteryCharge;
+    
+    let storedEnergyDelta = 0;
+    let usedEnergy = 0;
+
+    // Safety: Ensure totalCapacity is not NaN
+    const safeCapacity = isNaN(totalCapacity) ? 0 : totalCapacity;
+
     if (balance > 0) {
         // Surplus: Charge Battery
-        const chargeSpace = totalCapacity - currentCharge;
-        const chargeAmount = Math.min(chargeSpace, balance);
+        const space = safeCapacity - currentCharge;
+        const chargeAmount = Math.min(balance, Math.max(0, space)); // Ensure space not negative
         currentCharge += chargeAmount;
-        storedEnergy = chargeAmount;
+        storedEnergyDelta = chargeAmount;
     } else if (balance < 0) {
-        // Deficit: Drain Battery
+        // Deficit: Discharge Battery
         const deficit = Math.abs(balance);
-        const dischargeAmount = Math.min(currentCharge, deficit);
+        const dischargeAmount = Math.min(deficit, currentCharge);
         currentCharge -= dischargeAmount;
         usedEnergy = dischargeAmount;
     }
+    
+    // Cap charge just in case
+    currentCharge = Math.min(currentCharge, safeCapacity);
+    
+    const effectiveBalance = balance > 0 ? (balance - storedEnergyDelta) : (balance + usedEnergy);
 
-    // Ensure battery doesn't exceed cap
-    if (currentCharge > totalCapacity) currentCharge = totalCapacity;
-
-    // Financials
-    const netSurplus = Math.max(0, balance - storedEnergy);
-    const unmetLoad = Math.max(0, Math.abs(balance) - usedEnergy);
-
+    // Income Calculation
     let income = 0;
     let rating = 100;
     
-    if (unmetLoad === 0) {
-      income = 1200 + (netSurplus * 2.5);
+    if (effectiveBalance >= 0) {
+      income = 1500 + (effectiveBalance * 3.0);
     } else {
-      income = 400; 
-      const deficitPct = unmetLoad / (totalLoad || 1);
+      income = 500;
+      const deficitPct = Math.abs(effectiveBalance) / (totalLoad || 1);
       rating = Math.max(0, 100 - (deficitPct * 150));
     }
     
@@ -1010,7 +960,6 @@ export default function App() {
     const roundedRating = Math.floor(rating);
 
     // Pick Event
-    // Blackout logic from Month 5+
     let event: any = null;
     if (state.month >= 5 && Math.random() < 0.3) {
        event = EVENTS.find(e => e.id === 'blackout');
@@ -1018,23 +967,22 @@ export default function App() {
        event = EVENTS.filter(e => e.id !== 'blackout')[Math.floor(Math.random() * (EVENTS.length - 1))];
     }
 
-    // Pick Quiz (Unique)
     const availableQuestions = QUIZ_QUESTIONS.filter(q => !state.usedQuizIds.includes(q.id));
     const quiz = availableQuestions.length > 0 
        ? availableQuestions[Math.floor(Math.random() * availableQuestions.length)]
-       : QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)]; // Fallback
+       : QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)]; 
 
     setState(prev => ({
       ...prev,
-      screen: 'quiz', // Always go to quiz first
+      screen: 'quiz', 
       batteryCharge: currentCharge,
       lastMonthStats: {
         income: roundedIncome,
         upkeep: roundedUpkeep,
         rating: roundedRating,
         isOffGrid,
-        storedEnergy,
-        usedEnergy
+        storedEnergy: storedEnergyDelta > 0 ? storedEnergyDelta : 0, 
+        usedEnergy: usedEnergy 
       },
       currentQuiz: quiz,
       pendingEvent: event,
@@ -1089,31 +1037,14 @@ export default function App() {
          
          // Handle Blackout Buff
          if (evt.id === 'blackout' && choiceIndex === 0) {
-            // Check if successful (score increase indicates success in effect logic)
-            // But effect logic is run above and returns relative changes.
-            // Let's re-verify the condition here for the Buff
-            let totalStorage = 0;
-            prev.gridItems.forEach(item => {
-                const def = ELEMENTS[item.type];
-                if (def.type === 'store') {
-                   // Calculate raw storage value (ignoring weather/decay for the check)
-                   let val = def.baseValue;
-                   if(item.upgrades?.includes('cap')) val *= 1.4; // Upgrade logic mirror
-                   if(item.upgrades?.includes('solid')) val *= 1.6;
-                   totalStorage += val;
-                }
-            });
-
-            if (totalStorage > 150) {
-               // SUCCESS! Apply Buff
+            // Check charge directly from state, consistent with constants.ts
+            if (prev.batteryCharge > 150) {
                setGlobalModifiers(gm => ({ ...gm, loadReduction: gm.loadReduction * 0.95 }));
             }
          }
          
          // Handle Building Destruction (Earthquake Negligence)
          if (evt.id === 'disaster' && choiceIndex === 1) {
-             // Destroy a random building (excluding Meter/City Property if possible, but disaster strikes all!)
-             // Let's protect the meter though.
              const destructible = prev.gridItems.filter(i => i.type !== 'meter');
              if (destructible.length > 0) {
                  const target = destructible[Math.floor(Math.random() * destructible.length)];
@@ -1325,7 +1256,8 @@ export default function App() {
      }
   };
 
-  const cellSize = 60; 
+  // --- RENDERING ---
+  const cellSize = 60; // Pixels
   const mapSizePx = state.gridSize * cellSize;
 
   return (
@@ -1477,17 +1409,6 @@ export default function App() {
               <p className="text-sm text-gray-300 italic">"{state.weather.tip}"</p>
             </div>
 
-            {/* TOOL PREVIEW CARD */}
-            {(hoveredTool || (state.selectedTool && state.selectedTool !== 'delete')) && (
-               <ToolPreviewCard 
-                  type={hoveredTool || (state.selectedTool as ElementType)} 
-                  weather={state.weather} 
-                  month={state.month}
-                  globalModifiers={globalModifiers}
-                  playSound={playSound}
-               />
-            )}
-
             {/* MAP AREA */}
             <div className="flex-1 relative bg-[#0B1120] flex items-center justify-center overflow-auto p-8 cursor-grab active:cursor-grabbing grid-scroll">
                <div 
@@ -1615,7 +1536,7 @@ export default function App() {
                        
                        {/* KW DISPLAY */}
                        <div className={`absolute bottom-0 left-0 w-full text-[8px] font-bold text-center bg-black/70 backdrop-blur-sm py-0.5 ${def.type === 'gen' ? 'text-green-400' : def.type === 'load' ? 'text-red-400' : 'text-blue-400'}`}>
-                          {item.type !== 'meter' ? `${Math.round(kwValue)} kW` : 'OPS'}
+                          {item.type !== 'meter' ? `${Math.round(kwValue)} ${def.type === 'store' ? 'kWh' : 'kW'}` : 'OPS'}
                        </div>
 
                        {item.locked && <span className="absolute top-0 right-0 text-[8px]">🔒</span>}
@@ -1669,14 +1590,13 @@ export default function App() {
                   <div className="space-y-1">
                      <div className="flex justify-between text-xs">
                         <span className="text-blue-300 font-bold flex items-center gap-1"><BatteryCharging size={12} /> STORAGE</span>
-                        <span className="text-blue-300">{Math.round(state.batteryCharge)} / {Math.round(calculateStats.totalCapacity)} kWh</span>
+                        <span className="text-blue-300">{Math.round(isNaN(state.batteryCharge) ? 0 : state.batteryCharge)} / {Math.round(isNaN(calculateStats.totalCapacity) ? 0 : calculateStats.totalCapacity)} kWh</span>
                      </div>
                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600">
-                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${calculateStats.totalCapacity > 0 ? (state.batteryCharge / calculateStats.totalCapacity) * 100 : 0}%` }}></div>
+                        <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(calculateStats.totalCapacity || 0) > 0 ? ((state.batteryCharge || 0) / calculateStats.totalCapacity) * 100 : 0}%` }}></div>
                      </div>
                   </div>
 
-                  {/* GRID STATUS INDICATOR */}
                   <div className="mt-2 flex items-center justify-between">
                       <span className="text-xs text-slate-400 font-bold uppercase">Connection</span>
                       <span className={`text-xs font-bold px-2 py-1 rounded border ${calculateStats.isOffGrid ? 'bg-green-900/30 text-green-400 border-green-500/30' : 'bg-red-900/30 text-red-400 border-red-500/30'}`}>
@@ -1705,19 +1625,22 @@ export default function App() {
                       <button
                         key={el.id}
                         onClick={() => { setState(s => ({...s, selectedTool: el.id as ElementType})); playSound('click'); }}
-                        onMouseEnter={() => setHoveredTool(el.id)}
-                        onMouseLeave={() => setHoveredTool(null)}
                         className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === el.id ? 'bg-blue-600 border-blue-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}
                       >
                         <span className="text-2xl">{el.icon}</span>
                         <span className="text-xs font-bold text-center">{el.name}</span>
+                        
+                        <span className={`text-[10px] font-bold ${el.type === 'gen' ? 'text-green-400' : 'text-blue-400'}`}>
+                           {el.type === 'gen' && `+${el.baseValue} kW`}
+                           {el.type === 'store' && `${el.baseValue} kWh`}
+                        </span>
+
                         <span className="text-[10px] bg-slate-900/50 px-2 py-0.5 rounded text-green-400">${el.cost}</span>
                       </button>
                     ))}
                     
                     <button
                       onClick={() => { setState(s => ({...s, selectedTool: 'delete'})); playSound('click'); }}
-                      onMouseEnter={() => setHoveredTool(null)}
                       className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-all ${state.selectedTool === 'delete' ? 'bg-red-600 border-red-400 shadow-lg scale-105' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-500'}`}
                     >
                       <Trash2 size={24} />
