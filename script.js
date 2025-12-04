@@ -34,7 +34,18 @@ const ELEMENTS = {
     barn: {name: 'Barn', cost: 300, type: 'load', base: 35, icon: '🏚️'},    // rural barn-style emoji
 
     //
-    greenhouse: {name: 'Greenhouse', cost: 350, type: 'load', base: 50, icon: '🌿'}
+    greenhouse: {name: 'Greenhouse', cost: 350, type: 'load', base: 50, icon: '🌿'},
+
+    photovoltaic: {name: 'Solar Panel', cost: 400, type: 'gen', base: 40, icon: '☀️'},
+
+    thermo: {name: 'Thermo Solar Plant', cost: 900, type: 'gen', base: 95, icon: '🔥'},
+
+    geothermal: {name: 'Geothermal Plant', cost: 1500, type: 'gen', base: 110, icon: '🌋'},
+
+    hydrodam: {name: 'Hydro Dam', cost: 2000, type: 'gen', base: 180, icon: '🛠️'}
+
+
+
 
 
 };
@@ -98,7 +109,23 @@ const UPGRADES = {
     greenhouse: [
         { id: 'heat', name: 'Efficient Heating', cost: 200, mod: 0.85, desc: '-15% Load' },
         { id: 'glass', name: 'Thermal Glass', cost: 300, mod: 0.70, desc: '-30% Load' }
+    ],
+
+    thermo: [
+        { id: 'mirrors', name: 'Mirror Expansion', cost: 350, mod: 1.25, desc: '+25% Output' },
+        { id: 'cooling', name: 'Heat Sink Cooling', cost: 200, mod: 1.15, desc: '+15% Output' }
+    ],
+    geothermal: [
+        { id: 'steamBoost', name: 'Steam Cycle Boost', cost: 400, mod: 1.20, desc: '+20% Output' },
+        { id: 'thermalLoop', name: 'Thermal Loop Optimization', cost: 600, mod: 1.35, desc: '+35% Output' }
+    ],
+
+    hydrodam: [
+        { id: 'turbinePlus', name: 'Advanced Turbines', cost: 500, mod: 1.25, desc: '+25% Output' },
+        { id: 'spillway', name: 'Spillway Control', cost: 350, mod: 1.15, desc: '+15% Output' }
     ]
+
+
 
 
 
@@ -114,8 +141,41 @@ const SEASONS = [
     { name: 'Autumn', icon: 'grass', solar: 0.8, wind: 1.1 }
 ];
 
+// --- RANDOM WEATHER CONDITIONS ---
+const WEATHER_TYPES = [
+    {
+        name: "Clear Skies",
+        icon: "☀️",
+        solar: 1.0,   // normal
+        wind: 1.0,
+        hydro: 1.0
+    },
+    {
+        name: "Windy",
+        icon: "🌬️",
+        solar: 0.9,   // slightly reduced
+        wind: 1.35,   // big boost
+        hydro: 1.0
+    },
+    {
+        name: "Cloudy",
+        icon: "☁️",
+        solar: 0.65,  // strong penalty
+        wind: 1.0,
+        hydro: 1.05   // small rainfall runoff boost
+    },
+    {
+        name: "Rainy",
+        icon: "🌧️",
+        solar: 0.5,   // very weak solar
+        wind: 1.1,    // moderate wind boost
+        hydro: 1.25   // strong hydropower boost
+    }
+];
+
+
 // STATE
-let state = { credits: 0, score: 0, month: 0, grid: [], tool: null };
+let state = { credits: 0, score: 0, month: 0, grid: [], tool: null, weather:null };
 
 // DOM ELEMENTS
 const dom = {
@@ -127,10 +187,23 @@ const dom = {
     loadBar: document.getElementById('load-bar'),
     genBar: document.getElementById('gen-bar'),
     balanceText: document.getElementById('balance-text'),
-    toolTip: document.getElementById('tool-tip')
+    toolTip: document.getElementById('tool-tip'),
+
+
 };
 
 // --- GAME LOGIC ---
+
+//grid sizing
+function resizeGridToFit()
+{
+    const container = document.getElementById("system-map");
+
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+
+
+}
 
 function startGame(scenario) {
     document.getElementById('start-screen').classList.remove('active');
@@ -139,29 +212,27 @@ function startGame(scenario) {
 
     if (scenario === 'urban') {
         state.credits = 5000;
-        placeItem('meter', 280, 280); 
-        placeItem('building', 70, 70);
-        placeItem('building', 140, 70);
-        placeItem('building', 70, 140);
-        placeItem('warehouse', 210, 70);
-        placeItem('critical', 420, 140);
-        placeItem('office', 210, 210);
-        placeItem('police', 350, 210);
+        placeItem('meter', 280, 280, false);
+        placeItem('building', 70, 70, true);
+        placeItem('building', 140, 70, true);
+        placeItem('building', 70, 140, true);
+        placeItem('warehouse', 210, 70, false);
+        placeItem('critical', 420, 140, false);
+        placeItem('office', 210, 210, false);
+        placeItem('police', 350, 210, false);
+
     } else {
         // RURAL
         state.credits = 4500;
-        placeItem('meter', 280, 280);
-        placeItem('hydro', 490, 70);
-        placeItem('factory', 70, 280);
-        placeItem('farm', 140, 70);
-        placeItem('farm', 210, 70);
-        placeItem('barn', 350, 280);
-        placeItem('greenhouse', 350, 210);
-
-
-
-
+        placeItem('meter', 280, 280, true);
+        placeItem('hydro', 490, 70, false);
+        placeItem('factory', 70, 280, true);
+        placeItem('farm', 140, 70, true);
+        placeItem('farm', 210, 70, true);
+        placeItem('barn', 350, 280, true);
+        placeItem('greenhouse', 350, 210, true);
     }
+
     updateUI();
 }
 
@@ -203,8 +274,16 @@ dom.map.addEventListener('click', (e) => {
     if (state.tool === 'delete') {
         // DELETE TOOL LOGIC
         if (existingIndex > -1) {
+            const item = state.grid[existingIndex];
+
+            if (item.protected) {
+                openProtectedPopup();
+                return;
+            }
+
             deleteItem(existingIndex);
         }
+
     } else if (state.tool) {
         // BUILD TOOL LOGIC
         if (existingIndex > -1) {
@@ -243,32 +322,42 @@ function deleteItem(index) {
     updateUI();
 }
 
-function placeItem(key, x, y) {
+function placeItem(key, x, y, protected = false) {
     const id = 'el_' + Date.now() + Math.random().toString(16).slice(2);
     const def = ELEMENTS[key];
-    
-    state.grid.push({ id, key, x, y, mods: [] });
+
+    // ALWAYS safe because protected has a default value
+    state.grid.push({ id, key, x, y, mods: [], protected });
 
     const div = document.createElement('div');
     div.className = 'placed-element';
     div.id = id;
-    // Add margin adjustment to center in 70px grid
-    div.style.left = (x + 3) + 'px';
-    div.style.top = (y + 3) + 'px';
-    div.innerHTML = def.icon;
-    
-    if (def.type === 'gen') div.setAttribute('data-cat', 'Generation');
-    else if (def.type === 'load') div.setAttribute('data-cat', 'Consumption');
-    else if (def.type === 'store') div.setAttribute('data-cat', 'Storage');
-    else div.setAttribute('data-cat', 'Utility');
 
-    // ELEMENT CLICK HANDLER
+    div.style.left = x + 'px';
+    div.style.top = y + 'px';
+    div.innerHTML = def.icon;
+
+    div.setAttribute(
+        "data-cat",
+        def.type === 'gen' ? "Generation" :
+            def.type === 'load' ? "Consumption" :
+                def.type === 'store' ? "Storage" :
+                    "Utility"
+
+
+    );
+
     div.onclick = (e) => {
-        e.stopPropagation(); // Don't trigger map click
-        
+        e.stopPropagation();
+
+        const item = state.grid.find(el => el.id === id);
+
         if (state.tool === 'delete') {
-            const idx = state.grid.findIndex(el => el.id === id);
-            if(idx > -1) deleteItem(idx);
+            if (item.protected) {
+                openProtectedPopup();
+                return;
+            }
+            deleteItem(state.grid.findIndex(el => el.id === id));
         } else {
             openUpgradeModal(id);
         }
@@ -277,8 +366,10 @@ function placeItem(key, x, y) {
     dom.layer.appendChild(div);
 }
 
+
 // --- CALCS & UI ---
-function getMetrics() {
+function getMetrics()
+{
     let totalGen = 0, totalLoad = 0, upkeep = 0;
     const season = SEASONS[Math.floor(state.month/3)%4];
 
@@ -296,10 +387,44 @@ function getMetrics() {
         }
 
         if (def.type === 'gen') {
-            if (el.key === 'photovoltaic') val *= season.solar;
-            if (el.key === 'wind') val *= season.wind;
-            totalGen += val;
-        } else if (def.type === 'load') {
+
+            // Weather modifier (Clear / Windy / Cloudy / Rainy)
+            const weather = state.weather || { solar: 1, wind: 1, hydro: 1 };
+
+            // Apply seasonal + weather multipliers
+            if (el.key === 'photovoltaic') {
+                val *= season.solar * weather.solar;
+            }
+            if (el.key === 'wind') {
+                val *= season.wind * weather.wind;
+            }
+            if (el.key === 'hydro') {
+                val *= weather.hydro;
+            }
+            if (el.key === 'thermo')
+            {
+                // Thermo solar reacts differently — heat > light
+                val *= (weather.solar * 0.8) + 0.2;  // stable output but slightly affected by weather
+            }
+
+            if (el.key === 'geothermal') {
+                val *= 1.0;  // always stable
+            }
+
+            if (el.key === 'hydrodam') {
+                val *= 1.0 + ((weather.hydro - 1.0) * 0.5);
+                // Example: Rainy hydro (1.25) = +12% instead of +25%
+            }
+
+
+
+
+
+                totalGen += val;
+        }
+
+
+        else if (def.type === 'load') {
             if (season.name === 'Summer') val *= 1.15;
             if (season.name === 'Winter') val *= 1.10;
             totalLoad += val;
@@ -318,7 +443,7 @@ function updateUI() {
 
     const seasonIdx = Math.floor(state.month/3)%4;
     document.getElementById('season-name').innerText = SEASONS[seasonIdx].name;
-    document.getElementById('weather-icon').innerText = SEASONS[seasonIdx].icon;
+    document.getElementById('weather-icon').innerText = state.weather.icon;
 
     const max = Math.max(m.totalLoad, m.totalGen, 100) * 1.2;
     dom.loadBar.style.width = (m.totalLoad / max * 50) + '%';
@@ -397,6 +522,15 @@ function closeUpgradeModal() {
 
 // --- TURN END ---
 function nextMonth() {
+
+    // Pick random weather for the new month
+    state.weather = generateRandomWeather();
+
+    showWeatherPopup(state.weather);
+
+
+
+
     const m = getMetrics();
     const bal = m.totalGen - m.totalLoad;
     
@@ -430,7 +564,15 @@ function closeReport() {
         openGameOverModal(state.score);
         return;
     }
-    updateUI();
+    updateUI()
+    {
+        // Display weather condition
+        if (!state.weather) state.weather = generateRandomWeather();
+
+        document.getElementById("weather-icon").innerText = state.weather.icon;
+        document.getElementById("weather-desc").innerText = state.weather.name;
+
+    }
 }
 
 // =====================
@@ -486,9 +628,121 @@ function openGameOverModal(finalScore) {
 
 
 
-function restartGame() {
+function restartGame()
+{
     location.reload();
 }
+
+function openSolarChoice() {
+    document.getElementById('solar-select-modal').classList.add('active');
+}
+
+function closeSolarChoice() {
+    document.getElementById('solar-select-modal').classList.remove('active');
+}
+
+function selectSolarType(type) {
+    state.tool = type;              // 'photovoltaic' or 'thermo'
+    closeSolarChoice();             // hide modal
+    dom.map.classList.add('build-mode');
+
+    const item = ELEMENTS[type];
+    dom.toolTip.innerText = `BUILD ${item.name.toUpperCase()} ($${item.cost})`;
+
+    // highlight correct button
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+}
+
+const WEATHER_DESCRIPTIONS = {
+    "Clear Skies": "Normal solar & wind output.",
+    "Windy": "Wind turbines boosted. Solar slightly reduced.",
+    "Cloudy": "Solar weakened significantly. Hydro slightly boosted.",
+    "Rainy": "Solar very weak. Wind boosted. Hydro strongly boosted."
+};
+
+
+function generateRandomWeather()
+{
+    return WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
+}
+
+function showWeatherPopup(weather) {
+    const popup = document.getElementById("weather-popup");
+    const icon = document.getElementById("weather-popup-icon");
+    const text = document.getElementById("weather-popup-text");
+
+    icon.innerText = weather.icon;
+    text.innerText = WEATHER_DESCRIPTIONS[weather.name] || "";
+
+    popup.classList.remove("hidden");
+
+    // Trigger slide-up animation
+    setTimeout(() => popup.classList.add("show"), 10);
+
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+        popup.classList.remove("show");
+        setTimeout(() => popup.classList.add("hidden"), 400);
+    }, 4000);
+}
+
+document.getElementById("intro-start-btn").addEventListener("click", () => {
+    const intro = document.getElementById("intro-menu");
+    intro.classList.remove("active");
+    intro.style.display = "none";
+});
+
+// =============================
+// INTRO MENU LOGIC (Scroll to Reveal Button)
+// =============================
+
+// Get scrollable area
+const introScroll = document.querySelector(".intro-scroll");
+
+// Get the button wrapper (we recommend adding the ID, but class also works)
+const introButtonContainer = document.querySelector(".intro-button-container");
+
+// When user scrolls inside the intro/tutorial panel
+introScroll.addEventListener("scroll", () => {
+
+    // How far user has scrolled (top position + visible height)
+    const scrollPos = introScroll.scrollTop + introScroll.clientHeight;
+
+    // The full scrollable height (max scroll)
+    const scrollEnd = introScroll.scrollHeight - 1;
+
+    // If user reached the bottom → reveal button
+    if (scrollPos >= scrollEnd) {
+        introButtonContainer.classList.add("show");
+    } else {
+        introButtonContainer.classList.remove("show");
+    }
+});
+
+// CLOSE INTRO WHEN BUTTON IS CLICKED
+document.getElementById("intro-start-btn").addEventListener("click", () => {
+    const intro = document.getElementById("intro-menu");
+    intro.classList.remove("active");
+    intro.style.display = "none";
+});
+
+function openProtectedPopup() {
+    document.getElementById('protected-modal').classList.remove('hidden');
+}
+
+function closeProtectedPopup() {
+    document.getElementById('protected-modal').classList.add('hidden');
+}
+
+
+
+
+
+
+
+window.addEventListener("load", resizeGridToFit);
+window.addEventListener("resize", resizeGridToFit);
+
 
 
 
