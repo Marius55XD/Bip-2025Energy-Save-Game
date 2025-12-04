@@ -3,391 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eco Grid: Tycoon Remastered</title>
+    <title>Eco Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            overflow: hidden; 
+        }
+        .font-tech {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Custom scrollbar for grid container */
+        .grid-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .grid-scroll::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        .grid-scroll::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(234, 179, 8, 0.8); }
+        }
+        .animate-attention {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
-
-    <div class="bg-gradient"></div>
-
-    <div class="app-wrapper">
-        
-        <header class="top-bar glass-panel">
-            <div class="brand">
-                <span class="material-icons brand-icon">bolt</span>
-                <div class="brand-text">
-                    <h1>ECO GRID</h1>
-                    <small>TYCOON REMASTERED</small>
-                </div>
-            </div>
-
-            <div class="stats-container">
-                <div class="stat-item" style="display:flex; align-items:center; gap:10px;">
-                    <div>
-                        <span class="label">CREDITS</span>
-                        <span class="value money" id="credits-display">$0</span>
-                    </div>
-                    <button id="helpButton" class="help-btn">❓</button>
-                </div>
-
-                <div class="stat-item">
-                    <span class="label">GRID SCORE</span>
-                    <span class="value score" id="score-display">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="label">DATE</span>
-                    <span class="value" id="date-display">Month 1</span>
-                </div>
-            </div>
-        </header>
-
-
-
-        <div class="main-layout">
-            
-            <div class="map-container glass-panel">
-                <div id="system-map">
-                    <div id="grid-lines"></div>
-                    <div id="map-elements-layer"></div>
-                    
-                    <div id="notification-ticker" class="hidden">
-                        <span class="material-icons">info</span> <span id="ticker-text">Welcome.</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar glass-panel">
-                
-                <div class="panel-section">
-                    <h3>GRID BALANCE</h3>
-                    <div class="gauge-container">
-                        <div class="gauge-labels">
-                            <span style="color:#ff5252">LOAD</span>
-                            <span style="color:#00e676">GEN</span>
-                        </div>
-                        <div class="gauge-bar-bg">
-                            <div id="load-bar" class="gauge-fill load"></div>
-                            <div id="gen-bar" class="gauge-fill gen"></div>
-                        </div>
-                        <div class="gauge-value" id="balance-text">STABLE</div>
-                    </div>
-                </div>
-
-                <div class="panel-section">
-                    <h3>CONSTRUCTION</h3>
-                    <div class="tools-grid">
-                        <button class="tool-btn" onclick="openSolarChoice()">
-                            <div class="tool-icon">☀️</div>
-                            <span>Solar</span>
-                        </button>
-                        <button class="tool-btn" onclick="selectTool('wind')">
-                            <div class="tool-icon">🌬️</div>
-                            <span>Wind</span>
-                        </button>
-                        
-                        <button class="tool-btn" onclick="selectTool('batteries')">
-                            <div class="tool-icon">🔋</div>
-                            <span>Battery</span>
-                        </button>
-
-                         <button class="tool-btn" onclick="selectTool('building')">
-                            <div class="tool-icon">🏢</div>
-                            <span>Apt.</span>
-                        </button>
-
-                        <button class="tool-btn" onclick="selectTool('geothermal')">
-                            <div class="tool-icon">🌋</div>
-                            <span>Geothermal</span>
-                        </button>
-
-                        <button class="tool-btn" onclick="selectTool('hydrodam')">
-                            <div class="tool-icon">🛠️</div>
-                            <span>Hydro Dam</span>
-                        </button>
-
-
-
-                        <button class="tool-btn delete" onclick="selectTool('delete')">
-                            <div class="tool-icon">🗑️</div>
-                            <span>Scrap</span>
-                        </button>
-                    </div>
-                    <div id="tool-tip" class="tip-text">Select a component to build</div>
-                </div>
-
-                <div class="panel-section bottom-ops">
-                    <div class="weather-widget">
-                        <span class="material-icons" id="weather-icon">wb_sunny</span>
-                        <div>
-                            <div id="season-name">Summer</div>
-                            <small id="weather-desc">Clear Skies</small>
-                        </div>
-                    </div>
-                    <button id="next-month-btn" onclick="nextMonth()">
-                        NEXT MONTH <span class="material-icons">arrow_forward</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===========================
-     FULL INTRO MENU
-=========================== -->
-    <div id="intro-menu" class="overlay active">
-        <div class="intro-card">
-
-            <h1>WELCOME TO <span class="blue">ECO GRID</span></h1>
-            <p class="sub">Master the grid. Balance power. Survive 12 months.</p>
-
-            <div class="intro-scroll">
-
-                <h2>🎯 Your Goal</h2>
-                <p>Build and manage an energy grid while expanding your city. Keep GENERATION and LOAD balanced to earn profits and avoid blackouts.</p>
-
-                <h2>⚡ Energy Systems</h2>
-                <ul>
-                    <li><strong>Solar</strong> — Strong in summer, weak in winter.</li>
-                    <li><strong>Wind</strong> — Shifts based on seasons & weather.</li>
-                    <li><strong>Hydro</strong> — Reliable, boosted by rain.</li>
-                    <li><strong>Batteries</strong> — Store surplus energy for later.</li>
-                </ul>
-
-                <h2>🏙 City Growth</h2>
-                <ul>
-                    <li><strong>Apartments</strong> — Increase population & load.</li>
-                    <li><strong>Offices & Factories</strong> — Heavy daytime load.</li>
-                    <li><strong>Farms & Barns</strong> — Steady rural demand.</li>
-                    <li><strong>Hospitals & Police</strong> — Critical load units.</li>
-                </ul>
-
-                <h2>🌤 Seasons & Weather</h2>
-                <p>Each month has dynamic weather that affects power output:</p>
-                <ul>
-                    <li><strong>Winter</strong> — Weak solar, strong wind.</li>
-                    <li><strong>Spring</strong> — Balanced output.</li>
-                    <li><strong>Summer</strong> — Powerful solar, weaker wind.</li>
-                    <li><strong>Autumn</strong> — Slight solar drop, wind boost.</li>
-                </ul>
-                <p>Weather can be Clear, Cloudy, Windy, or Rainy — each with effects.</p>
-
-                <h2>🛠 Upgrades</h2>
-                <p>Click a structure to access specialized upgrades that boost efficiency or output.</p>
-
-                <h2>📅 Monthly Reports</h2>
-                <p>Every month you gain income based on stability. Upkeep is deducted from your total credits.</p>
-
-                <h2>💡 Tips</h2>
-                <ul>
-                    <li>Mix solar + wind for stability.</li>
-                    <li>Don't build too many apartments early!</li>
-                    <li>Batteries help smooth sudden weather dips.</li>
-                    <li>Upgrade BEFORE expanding too much.</li>
-                </ul>
-            </div>
-
-
-            <div class="intro-button-container">
-                <button id="intro-start-btn" class="intro-start-btn">I GOT THIS!!!</button>
-            </div>
-
-        </div>
-    </div>
-
-
-
-    <div id="start-screen" class="overlay active">
-        <div class="modal-card">
-            <h1 class="glitch-text">ECO GRID</h1>
-            <p>Select your starting scenario:</p>
-            <div class="scenario-options">
-                <button class="scenario-btn" onclick="startGame('urban')">
-                    <span class="material-icons">location_city</span>
-                    <div>
-                        <strong>URBAN CITY</strong>
-                        <small>High Density • Office Blocks</small>
-                    </div>
-                </button>
-                <button class="scenario-btn" onclick="startGame('rural')">
-                    <span class="material-icons">agriculture</span>
-                    <div>
-                        <strong>RURAL FARM</strong>
-                        <small>Heavy Industry • Agriculture</small>
-                    </div>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="upgradeModal" class="overlay">
-        <div class="modal-card small">
-            <div class="modal-header">
-                <h3 id="u-title">ELEMENT</h3>
-                <button class="icon-btn" onclick="closeUpgradeModal()">✕</button>
-            </div>
-            <p id="u-desc">Stats...</p>
-            <div id="upgrade-list"></div>
-            <input type="hidden" id="selectedElementId">
-        </div>
-    </div>
-
-    <div id="report-modal" class="overlay">
-        <div class="modal-card report">
-            <h2>MONTH REPORT</h2>
-            <div class="report-grid">
-                <div class="r-item"><label>Rating</label><div class="r-val" id="r-rating">100%</div></div>
-                <div class="r-item"><label>Income</label><div class="r-val success" id="r-income">+$0</div></div>
-                <div class="r-item"><label>Upkeep</label><div class="r-val danger" id="r-cost">-$0</div></div>
-            </div>
-            <div class="net-display">NET: <span id="r-net">0</span></div>
-            <button class="action-btn" onclick="closeReport()">CONTINUE</button>
-        </div>
-    </div>
-
-    <!-- HELP / HOW-TO PLAY MODAL -->
-    <!-- HELP / HOW TO PLAY MODAL -->
-    <div id="helpModal" class="help-modal hidden">
-        <div class="help-card">
-            <button id="closeHelp" class="icon-btn" style="float:right; font-size:1.4rem;">✕</button>
-
-            <h2>How to Play</h2>
-            <p><strong>Goal:</strong> Build a stable, efficient energy grid while expanding your city.</p>
-
-            <h3>Components</h3>
-            <ul>
-                <li><strong>☀️ Solar</strong> — Generates power during daytime, weaker in winter.</li>
-                <li><strong>🌬️ Wind</strong> — Power changes based on wind & season.</li>
-                <li><strong>🔋 Battery</strong> — Stores excess power for later use.</li>
-                <li><strong>🏢 Apartment</strong> — Increases population & energy demand.</li>
-                <li><strong>🗑 Scrap</strong> — Removes placed structures.</li>
-            </ul>
-
-            <h3>Grid Balance</h3>
-            <p>Keep <strong>LOAD</strong> (red) and <strong>GEN</strong> (green) close to equal.</p>
-
-            <h3>Weather System</h3>
-            <p>Season affects power production — plan your builds around it!</p>
-
-            <h3>Gameplay Loop</h3>
-            <ol>
-                <li>Select a structure.</li>
-                <li>Place it on the grid map.</li>
-                <li>Watch your energy balance.</li>
-                <li>Advance to the next month.</li>
-                <li>Earn or lose credits based on stability.</li>
-            </ol>
-
-            <h3>Tips</h3>
-            <ul>
-                <li>Mix solar + wind for consistent output.</li>
-                <li>Avoid too many apartments early.</li>
-                <li>Use batteries to stabilize your grid.</li>
-            </ul>
-        </div>
-    </div>
-
-    <div id="funds-modal" class="overlay hidden">
-        <div class="modal-card small">
-            <h3 style="margin-bottom:10px; color:#ff5252;">INSUFFICIENT FUNDS</h3>
-            <p style="margin-bottom:20px;">You do not have enough credits to build this item.</p>
-            <button class="action-btn" onclick="closeFundsModal()">OK</button>
-        </div>
-    </div>
-
-    <!-- GAME OVER MODAL -->
-    <div id="gameover-modal" class="overlay">
-        <div class="modal-card small" style="text-align:center;">
-            <h2 style="color: var(--warning); margin-top:0;">GAME OVER</h2>
-
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 15px 0;">
-                <p><strong>Final Score:</strong>
-                    <span id="gameover-score" style="color: var(--success); font-family:'Orbitron'"></span>
-                </p>
-
-                <p><strong>Final Credits:</strong>
-                    <span id="gameover-credits" style="color: var(--primary); font-family:'Orbitron'"></span>
-                </p>
-
-                <p><strong>Total Generation:</strong>
-                    <span id="gameover-gen" style="color: var(--success); font-family:'Orbitron'"></span> kW
-                </p>
-
-                <p><strong>Total Load:</strong>
-                    <span id="gameover-load" style="color: var(--danger); font-family:'Orbitron'"></span> kW
-                </p>
-
-                <p><strong>Net Balance:</strong>
-                    <span id="gameover-net" style="font-family:'Orbitron'"></span> kW
-                </p>
-            </div>
-
-            <button class="action-btn" onclick="restartGame()">PLAY AGAIN</button>
-        </div>
-    </div>
-
-    <div id="solar-select-modal" class="overlay">
-        <div class="modal-card small" style="text-align:center;">
-            <h3>Select Solar Technology</h3>
-
-            <div class="solar-choice-grid">
-                <button class="solar-choice-btn" onclick="selectSolarType('photovoltaic')">
-                    <span class="tool-icon" style="font-size:2rem;">☀️</span>
-                    <strong>Solar Panels</strong>
-                    <small>Low cost • Moderate output</small>
-                </button>
-
-                <button class="solar-choice-btn" onclick="selectSolarType('thermo')">
-                    <span class="tool-icon" style="font-size:2rem;">🔥</span>
-                    <strong>Thermo Solar</strong>
-                    <small>Expensive • High output</small>
-                </button>
-            </div>
-
-            <button class="action-btn" onclick="closeSolarChoice()">Cancel</button>
-        </div>
-    </div>
-
-    <div id="protected-modal" class="overlay hidden" style="z-index: 999999;">
-        <div class="modal-card" style="
-        width: 350px;
-        padding: 20px;
-        background: #1a1a1a;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.15);
-        text-align: center;
-    ">
-            <h2 style="color:#ffeb3b; margin-bottom:10px;">Cannot Scrap</h2>
-            <p style="color:#ddd; margin-bottom:20px;">
-                This building is essential and cannot be removed.
-            </p>
-            <button onclick="closeProtectedPopup()" style="
-            padding: 10px 20px;
-            background: #2979ff;
-            color: white;
-            border:none;
-            border-radius:8px;
-            cursor:pointer;
-            font-size:1rem;
-        ">OK</button>
-        </div>
-    </div>
-
-
-
-    <!-- WEATHER EFFECT POPUP -->
-    <div id="weather-popup" class="weather-popup hidden">
-        <span id="weather-popup-icon">☀️</span>
-        <div id="weather-popup-text">Weather description...</div>
-    </div>
-
-
-
-
-
-
-
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
