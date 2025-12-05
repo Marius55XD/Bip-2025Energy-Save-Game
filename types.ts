@@ -67,6 +67,8 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correctAnswer: number; // Index of correct option
+  hint: string; // Educational hint
+  explanations: string[]; // Explanation for each option
 }
 
 export interface LeaderboardEntry {

@@ -183,181 +183,369 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 1,
     question: "Which factor affects wind energy production the most?",
     options: ["Wind speed", "Air humidity", "Rain"],
-    correctAnswer: 0
+    correctAnswer: 0,
+    hint: "More wind means more power. Place turbines where it's windy!",
+    explanations: [
+      "Correct! Wind speed directly determines how much kinetic energy the turbine can convert into electricity.",
+      "Incorrect. Air humidity has almost no effect on wind energy production compared to wind speed.",
+      "Incorrect. Rain does not significantly affect wind energy output; wind speed is the key factor."
+    ]
   },
   {
     id: 2,
     question: "Why are batteries important in a system with wind and solar energy?",
     options: ["They increase wind speed", "They provide stable energy during peaks and drops", "They make energy cheaper"],
-    correctAnswer: 1
+    correctAnswer: 1,
+    hint: "Batteries keep your lights on when the sun or wind stops.",
+    explanations: [
+      "Incorrect. Batteries do not affect wind speed.",
+      "Correct! Batteries store excess energy and release it during low production periods, ensuring stability.",
+      "Incorrect. Batteries do not directly make energy cheaper, they improve reliability."
+    ]
   },
   {
     id: 3,
     question: "What happens if you place too many wind turbines close together?",
     options: ["Production increases", "No effect", "Turbulence reduces production"],
-    correctAnswer: 2
+    correctAnswer: 2,
+    hint: "Spread turbines out so they don't block each other.",
+    explanations: [
+      "Incorrect. Placing turbines too close causes turbulence, reducing efficiency.",
+      "Incorrect. There is an effect: turbulence reduces production.",
+      "Correct! Turbulence between turbines reduces wind speed and energy output."
+    ]
   },
   {
     id: 4,
     question: "Which option reduces CO2 emissions the most?",
-    options: ["Reducing distances between cities and generation", "Installing wind turbines", "Removing batteries"],
-    correctAnswer: 1
+    options: ["Reducing the distances between cities and energy production", "Installing wind turbines", "Removing batteries from green energy generation"],
+    correctAnswer: 1,
+    hint: "Renewable energy like wind and solar cuts CO2 the most.",
+    explanations: [
+      "Incorrect. While reducing distances helps, installing renewable sources like wind turbines has a bigger impact.",
+      "Correct! Wind turbines generate clean energy, significantly reducing CO2 emissions.",
+      "Incorrect. Removing batteries would harm stability, not reduce emissions."
+    ]
   },
   {
     id: 5,
     question: "What happens if you overload battery clusters?",
     options: ["Efficiency drops", "Efficiency increases", "No effect"],
-    correctAnswer: 0
+    correctAnswer: 0,
+    hint: "Don't push batteries too hard.",
+    explanations: [
+      "Correct! Overloading batteries reduces efficiency and can damage them.",
+      "Incorrect. Overloading does not increase efficiency; it causes problems.",
+      "Incorrect. Overloading has a negative effect on performance."
+    ]
   },
   {
     id: 6,
     question: "Which type of energy is the most suitable as a constant power source?",
     options: ["Solar energy", "Wind energy", "Hydro energy", "Geothermal energy"],
-    correctAnswer: 3
+    correctAnswer: 3,
+    hint: "Geothermal is steady, it works day and night.",
+    explanations: [
+      "Incorrect. Solar is intermittent and depends on sunlight.",
+      "Incorrect. Wind is variable and unpredictable.",
+      "Incorrect. Hydro is stable but depends on water availability.",
+      "Correct! Geothermal provides constant base power all year round."
+    ]
   },
   {
     id: 7,
     question: "What is the biggest challenge with wind power?",
     options: ["Wind is unpredictable", "It requires tall buildings", "It doesn't work at night"],
-    correctAnswer: 0
+    correctAnswer: 0,
+    hint: "Wind changes a lot, sometimes strong, sometimes weak.",
+    explanations: [
+      "Correct! Wind variability makes it hard to guarantee constant output.",
+      "Incorrect. Wind turbines require towers, not tall buildings.",
+      "Incorrect. Wind can blow at night; unpredictability is the real issue."
+    ]
   },
   {
     id: 8,
     question: "What is a negative synergy for wind turbines?",
     options: ["Placing them in open spaces", "Placing them too close together", "Combining them with batteries"],
-    correctAnswer: 1
+    correctAnswer: 1,
+    hint: "Give turbines space, they need room to catch the wind.",
+    explanations: [
+      "Incorrect. Open spaces are ideal for wind turbines.",
+      "Correct! Too close causes turbulence and reduces efficiency.",
+      "Incorrect. Batteries complement wind energy, not harm it."
+    ]
   },
   {
     id: 9,
     question: "Which factor has the greatest impact on solar energy output?",
     options: ["Wind speed", "Cloud cover", "Soil temperature"],
-    correctAnswer: 1
+    correctAnswer: 1,
+    hint: "Sunny days means more solar power.",
+    explanations: [
+      "Incorrect. Wind speed does not affect solar panels.",
+      "Correct! Clouds block sunlight, reducing solar output.",
+      "Incorrect. Soil temperature has no direct effect on solar panels."
+    ]
   },
   {
     id: 10,
-    question: "Wind turbines always produce the same amount of energy, no matter the wind speed.",
+    question: "Wind turbines always produce the same amount of energy, no matter the wind speed",
     options: ["True", "False"],
-    correctAnswer: 1
+    correctAnswer: 1,
+    hint: "More wind means more energy.",
+    explanations: [
+      "Incorrect. Wind speed directly affects energy production.",
+      "Correct! Wind speed determines how much energy turbines produce."
+    ]
   },
   {
     id: 11,
     question: "Solar panels work better when it is extremely hot.",
     options: ["True", "False"],
-    correctAnswer: 1
+    correctAnswer: 1,
+    hint: "Cool and sunny is perfect for solar panels.",
+    explanations: [
+      "Incorrect. High temperatures reduce solar panel efficiency.",
+      "Correct! Solar panels work best in cool, sunny conditions."
+    ]
   },
   {
     id: 12,
     question: "Which battery statement is incorrect?",
-    options: ["Batteries can store energy for later use", "Batteries lose energy during charging", "Batteries return 100% of the energy you put in"],
-    correctAnswer: 2
+    options: ["Batteries can store energy for later use", "Batteries lose some energy during charging/discharging", "Batteries return 100% of the energy you put in"],
+    correctAnswer: 2,
+    hint: "Batteries lose a little energy when charging and discharging.",
+    explanations: [
+      "Incorrect. Batteries can store energy for later use.",
+      "Incorrect. Batteries do lose some energy during charging/discharging.",
+      "Correct! Batteries never return 100% of the energy you put in."
+    ]
   },
   {
     id: 13,
-    question: "Which source is most economical for large scale energy?",
+    question: "Which of the following sources of energy is the most economical option to generate energy on a large scale?",
     options: ["Geothermal", "Solar", "Wind", "Hydro"],
-    correctAnswer: 2
+    correctAnswer: 3,
+    hint: "Hydro is usually the cheapest for big projects.",
+    explanations: [
+      "Incorrect. Geothermal is reliable but costly to install.",
+      "Incorrect. Solar is economical but less so than hydro for large scale.",
+      "Incorrect. Wind is cost-effective but hydro beats it for large scale.",
+      "Correct! Hydroelectric power is generally the most cost-effective for large-scale generation."
+    ]
   },
   {
     id: 14,
-    question: "What forces PV Solar systems to use batteries?",
-    options: ["Silicon cost", "Maintenance", "Heat", "Day/Night cycle"],
-    correctAnswer: 3
+    question: "In a photovoltaic solar energy system, what is the main limiting factor that forces the use of batteries to maintain a constant supply?",
+    options: ["The cost of silicon", "Panel maintenance", "Excessive heat in summer", "The day/night cycle"],
+    correctAnswer: 3,
+    hint: "Solar stops at night, batteries keep power flowing.",
+    explanations: [
+      "Incorrect. Silicon cost does not force battery use.",
+      "Incorrect. Maintenance is not the main limiting factor.",
+      "Incorrect. Heat affects efficiency but not battery necessity.",
+      "Correct! Solar panels only produce energy during the day, so batteries are needed for nighttime supply."
+    ]
   },
   {
     id: 15,
-    question: "Game strategy: Key advantage of Geothermal?",
-    options: ["No maintenance", "Cheapest to build", "Constant base power", "More winter energy"],
-    correctAnswer: 2
+    question: "What key advantage does geothermal energy offer over solar and wind energy in a game strategy?",
+    options: ["It requires no maintenance", "It is the cheapest to build", "Provides constant base power all year", "It produces more energy in winter"],
+    correctAnswer: 2,
+    hint: "Geothermal works all the time, no matter the weather.",
+    explanations: [
+      "Incorrect. Geothermal still requires maintenance.",
+      "Incorrect. It is not the cheapest to build.",
+      "Correct! Geothermal provides constant base power all year.",
+      "Incorrect. It does not produce more energy in winter specifically."
+    ]
   },
   {
     id: 16,
-    question: "How does Winter affect Solar production vs Summer?",
-    options: ["Cancelled", "Same", "Decreases significantly", "Increases"],
-    correctAnswer: 2
+    question: "How does winter generally affect solar energy production compared to summer?",
+    options: ["It is completely cancelled", "It remains the same", "It decreases significantly", "It increases due to low temperatures"],
+    correctAnswer: 2,
+    hint: "Winter means less sunlight, so less solar power.",
+    explanations: [
+      "Incorrect. Solar does not stop completely in winter.",
+      "Incorrect. It does not remain the same; it decreases.",
+      "Correct! Shorter days and more clouds reduce solar output significantly.",
+      "Incorrect. Cold does not increase solar production."
+    ]
   },
   {
     id: 17,
     question: "Why is energy mix important?",
-    options: ["Balances reliability/sustainability", "Extra money", "Removes need for batteries"],
-    correctAnswer: 0
+    options: ["It balances reliability and sustainability, avoiding instability penalties", "It gives you extra money", "It removes the need for batteries"],
+    correctAnswer: 0,
+    hint: "Mixing energy sources makes your grid stronger.",
+    explanations: [
+      "Correct! Combining sources ensures stability and avoids penalties for outages.",
+      "Incorrect. It does not give extra money directly.",
+      "Incorrect. Batteries are still needed even with a mix."
+    ]
   },
   {
     id: 18,
-    question: "Main function of batteries in a wind-heavy grid?",
-    options: ["Increase turbine power", "Smoothing variability", "Generate extra electricity", "Reduce noise"],
-    correctAnswer: 1
+    question: "What is the main function of batteries in a grid that relies primarily on wind power?",
+    options: ["Increase the power of the turbines", "Smoothing wind variability", "Generate extra electricity", "Reducing the noise from the mills"],
+    correctAnswer: 1,
+    hint: "Batteries help when the wind slows down.",
+    explanations: [
+      "Incorrect. Batteries do not increase turbine power.",
+      "Correct! Batteries store excess energy and release it when wind drops, stabilizing the grid.",
+      "Incorrect. Batteries do not generate extra electricity.",
+      "Incorrect. Batteries do not reduce noise."
+    ]
   },
   {
     id: 19,
-    question: "Characteristic of Hydroelectric power?",
-    options: ["Lowest efficiency", "Cheap to install anywhere", "No water storage", "High stability/control"],
-    correctAnswer: 3
+    question: "What characteristic best defines hydroelectric power compared to solar and wind power?",
+    options: ["It has the lowest energy efficiency", "It is very cheap to install anywhere", "It does not require water storage", "High stability and controllability"],
+    correctAnswer: 3,
+    hint: "Hydro is steady and easy to control.",
+    explanations: [
+      "Incorrect. Hydro has high efficiency.",
+      "Incorrect. It is not cheap to install anywhere.",
+      "Incorrect. Hydro requires water storage.",
+      "Correct! Hydro provides high stability and controllability."
+    ]
   },
   {
     id: 20,
-    question: "Risk of relying only on intermittent sources without storage?",
-    options: ["Too much base gen", "High fuel costs", "Pollution", "Instability/Interruptions"],
-    correctAnswer: 3
+    question: "While planning your electrical grid in the game, what is the risk of relying exclusively on intermittent renewable sources (solar/wind) without sufficient storage?",
+    options: ["Too much base generation", "Very high fuel costs", "Excessive pollution", "Instability and supply interruptions"],
+    correctAnswer: 3,
+    hint: "Without batteries, your power can stop suddenly.",
+    explanations: [
+      "Incorrect. Base generation is not the issue.",
+      "Incorrect. Fuel costs are irrelevant for renewables.",
+      "Incorrect. Pollution is not the problem here.",
+      "Correct! Without storage, you risk instability and supply interruptions."
+    ]
   },
   {
     id: 21,
-    question: "Metric for long-term cost effectiveness?",
-    options: ["LCOE", "Peak Power", "Construction Cost"],
-    correctAnswer: 0
+    question: "What metric would you use to decide which energy source is most cost-effective in the long run for your game?",
+    options: ["Levelized Cost of Energy (LCOE)", "Maximum (Peak) Power", "Construction cost only"],
+    correctAnswer: 0,
+    hint: "LCOE shows the real cost over time.",
+    explanations: [
+      "Correct! LCOE measures total lifetime cost per unit of energy.",
+      "Incorrect. Peak power does not reflect long-term cost.",
+      "Incorrect. Construction cost alone ignores maintenance and lifetime output."
+    ]
   },
   {
     id: 22,
-    question: "Where is Geothermal energy derived from?",
+    question: "Where is geothermal energy derived from?",
     options: ["Sunlight", "Wind", "Rain", "Earth's internal heat"],
-    correctAnswer: 3
+    correctAnswer: 3,
+    hint: "Geothermal comes from heat deep underground.",
+    explanations: [
+      "Incorrect. Geothermal does not come from sunlight.",
+      "Incorrect. It does not come from wind.",
+      "Incorrect. Rain is not the source of geothermal energy.",
+      "Correct! Geothermal taps into heat from the Earth's core."
+    ]
   },
   {
     id: 23,
-    question: "Main disadvantage of Wind Turbines?",
-    options: ["Only work in Summer", "Consume water", "Unpredictable wind"],
-    correctAnswer: 2
+    question: "Wind turbines generate energy from the wind. What is their main disadvantage compared to other energy sources?",
+    options: ["They only work in the summer", "They consume a lot of water", "The wind is unpredictable: sometimes it blows, sometimes it doesn't"],
+    correctAnswer: 2,
+    hint: "Wind can change quickly, sometimes strong and sometimes weak.",
+    explanations: [
+      "Incorrect. Wind works in all seasons.",
+      "Incorrect. Wind turbines do not consume water.",
+      "Correct! Wind is unpredictable: sometimes it blows, sometimes it doesn't."
+    ]
   },
   {
     id: 24,
-    question: "Geothermal's 'superpower' vs Solar?",
-    options: ["Anywhere", "Free to build", "Works 24/7"],
-    correctAnswer: 2
+    question: "Geothermal energy extracts heat from the Earth's interior. What is its great 'superpower' compared to solar energy?",
+    options: ["It can be placed anywhere, even in the air", "It's free to build", "It works 24 hours a day, whatever the weather"],
+    correctAnswer: 2,
+    hint: "Geothermal never stops, it works day and night.",
+    explanations: [
+      "Incorrect. Geothermal cannot be placed anywhere.",
+      "Incorrect. It is not free to build.",
+      "Correct! Geothermal works 24 hours a day, whatever the weather."
+    ]
   },
   {
     id: 25,
-    question: "Which source becomes more efficient in cold temps?",
+    question: "Which energy source becomes more efficient at colder temperatures?",
     options: ["Solar panels", "Wind turbines", "Geothermal"],
-    correctAnswer: 0
+    correctAnswer: 0,
+    hint: "Solar likes cool weather, not heat.",
+    explanations: [
+      "Correct! Solar panels perform better in cooler conditions.",
+      "Incorrect. Wind efficiency does not depend on temperature.",
+      "Incorrect. Geothermal efficiency is not affected by cold."
+    ]
   },
   {
     id: 26,
-    question: "How does Energy Efficiency impact usage?",
-    options: ["Increases usage", "Only renewable", "Reduces consumption without reducing output"],
-    correctAnswer: 2
+    question: "How does energy efficiency impact energy use?",
+    options: ["Increases energy use", "Only affects renewable energy", "Reduces energy consumption without reducing output"],
+    correctAnswer: 2,
+    hint: "Efficiency means doing more with less energy.",
+    explanations: [
+      "Incorrect. Efficiency reduces energy use, not increases it.",
+      "Incorrect. Efficiency affects all energy types, not just renewables.",
+      "Correct! Efficiency reduces energy consumption without reducing output."
+    ]
   },
   {
     id: 27,
-    question: "What is a Smart Grid?",
-    options: ["Optimizes distribution", "Nuclear only", "No sensors", "Disconnected"],
-    correctAnswer: 0
+    question: "What is a smart grid?",
+    options: ["An electricity network that optimizes distribution", "Grid powered only by nuclear energy", "Simple power lines without sensors", "Grid disconnected from renewable sources"],
+    correctAnswer: 0,
+    hint: "Smart grids help balance energy and avoid waste.",
+    explanations: [
+      "Correct! A smart grid optimizes electricity distribution using sensors and automation.",
+      "Incorrect. It is not limited to nuclear energy.",
+      "Incorrect. Simple power lines without sensors are not smart grids.",
+      "Incorrect. Smart grids integrate renewables, not disconnect them."
+    ]
   },
   {
     id: 28,
-    question: "Winter + Cloudy: What happens to Solar Panels?",
-    options: ["Double energy", "Much less energy", "Stop working"],
-    correctAnswer: 1
+    question: "If it's winter and cloudy in your game, what will happen to your solar panels?",
+    options: ["They will produce twice as much energy", "They will produce much less energy than in summer", "They will stop working because of the cold"],
+    correctAnswer: 1,
+    hint: "Clouds and short days mean less solar power.",
+    explanations: [
+      "Incorrect. Solar panels will not produce twice as much energy.",
+      "Correct! They will produce much less energy than in summer.",
+      "Incorrect. Cold does not stop solar panels from working."
+    ]
   },
   {
     id: 29,
-    question: "How does shading affect solar panels?",
-    options: ["Reduces output", "Increases efficiency", "Improves lifespan"],
-    correctAnswer: 0
+    question: "How does shading affect solar panel performance?",
+    options: ["Reduces electricity output", "Increases efficiency", "Improves panel lifespan"],
+    correctAnswer: 0,
+    hint: "Keep panels in the sun for best results.",
+    explanations: [
+      "Correct! Shade blocks sunlight, reducing power generation.",
+      "Incorrect. Shade does not increase efficiency.",
+      "Incorrect. Shade does not improve lifespan."
+    ]
   },
   {
     id: 30,
-    question: "Best strategy to never run out of light?",
-    options: ["Combine sources (Solar, Wind, Battery)", "Only Geothermal", "Different grid per season"],
-    correctAnswer: 0
+    question: "What's the best strategy to never run out of light in the game?",
+    options: ["Combine different energy sources (Solar, Wind, Batteries…)", "Building only Geothermal plants", "Build a different grid for each season"],
+    correctAnswer: 0,
+    hint: "Mix solar, wind, and batteries for a strong grid.",
+    explanations: [
+      "Correct! Combining different energy sources ensures reliability and avoids outages.",
+      "Incorrect. Relying only on geothermal is risky and expensive.",
+      "Incorrect. Building separate grids for each season is inefficient."
+    ]
   }
 ];
 

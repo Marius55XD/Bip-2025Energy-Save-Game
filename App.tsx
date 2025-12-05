@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ELEMENTS, EVENTS, GRID_SIZE_RURAL, GRID_SIZE_URBAN, RURAL_TRANSMISSION_DISTANCE_THRESHOLD, WIRE_COST_PER_UNIT, SEASONS, WEATHER_TYPES, UPGRADES, QUIZ_QUESTIONS, DEFAULT_LEADERBOARD, PRODUCTION_MATRIX } from './constants';
 import { GameState, GridItem, ElementType, QuizQuestion, LeaderboardEntry, ElementDef } from './types';
-import { Plus, Trash2, Info, AlertTriangle, Wind, Sun, DollarSign, Activity, Settings, CheckCircle, XCircle, Volume2, VolumeX, BookOpen, Star, HelpCircle, ArrowRight, Home, Cloud, CloudLightning, ThermometerSun, Fan, Flame, Droplets, Leaf, Radio, Zap, Trophy, Save, RotateCcw, Battery, BatteryCharging } from 'lucide-react';
+import { Plus, Trash2, Info, AlertTriangle, Wind, Sun, DollarSign, Activity, Settings, CheckCircle, XCircle, Volume2, VolumeX, BookOpen, Star, HelpCircle, ArrowRight, Home, Cloud, CloudLightning, ThermometerSun, Fan, Flame, Droplets, Leaf, Radio, Zap, Trophy, Save, RotateCcw, Battery, BatteryCharging, Lightbulb } from 'lucide-react';
 
 // --- AUDIO SYSTEM (Web Audio API) ---
 const useAudio = () => {
@@ -262,15 +262,25 @@ const LoanModal = ({ state, onClose, onTakeLoan, playSound, LOAN_OPTIONS }: {
                 const totalInterest = loan.amount * loan.interestRate;
                 const totalRepayment = loan.amount + totalInterest;
                 const monthlyPayment = Math.ceil(totalRepayment / loan.months);
+                const monthsRemaining = 12 - state.month + 1; // Months left including current month
+                const isAvailable = loan.months <= monthsRemaining;
+                
                 return (
                   <button
                     key={idx}
-                    onClick={() => { onTakeLoan(idx); onClose(); }}
-                    className="w-full bg-slate-700 hover:bg-slate-600 border-2 border-yellow-600/30 hover:border-yellow-500 rounded-lg p-4 text-left transition-all"
+                    onClick={() => { if (isAvailable) { onTakeLoan(idx); onClose(); } }}
+                    disabled={!isAvailable}
+                    className={`w-full border-2 rounded-lg p-4 text-left transition-all ${
+                      isAvailable 
+                        ? 'bg-slate-700 hover:bg-slate-600 border-yellow-600/30 hover:border-yellow-500 cursor-pointer' 
+                        : 'bg-slate-800/50 border-slate-700 opacity-50 cursor-not-allowed'
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-lg font-bold text-white">{loan.name}</span>
-                      <span className="text-xl text-green-400 font-bold">+${loan.amount}</span>
+                      <span className={`text-xl font-bold ${isAvailable ? 'text-green-400' : 'text-gray-500'}`}>
+                        +${loan.amount}
+                      </span>
                     </div>
                     <div className="space-y-1 text-sm text-gray-300">
                       <div className="flex justify-between">
@@ -285,6 +295,13 @@ const LoanModal = ({ state, onClose, onTakeLoan, playSound, LOAN_OPTIONS }: {
                         <span>Interest:</span>
                         <span className="text-yellow-300">{(loan.interestRate * 100).toFixed(0)}%</span>
                       </div>
+                      {!isAvailable && (
+                        <div className="mt-2 pt-2 border-t border-slate-600">
+                          <span className="text-red-400 text-xs font-bold">
+                            ⚠️ Not enough months remaining ({monthsRemaining} left)
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
@@ -318,6 +335,7 @@ const LoanModal = ({ state, onClose, onTakeLoan, playSound, LOAN_OPTIONS }: {
 const QuizModal = ({ question, onAnswer, playSound }: { question: QuizQuestion, onAnswer: (correct: boolean) => void, playSound: any }) => {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   const handleSubmit = () => {
     if (selected === null) return;
@@ -336,7 +354,31 @@ const QuizModal = ({ question, onAnswer, playSound }: { question: QuizQuestion, 
       <div className="bg-slate-800 border-2 border-purple-500/50 rounded-2xl max-w-lg w-full p-8 shadow-[0_0_50px_rgba(168,85,247,0.2)]">
         <h2 className="text-center text-purple-400 font-tech text-xl mb-6 tracking-widest">MONTHLY KNOWLEDGE CHECK</h2>
         
-        <p className="text-white text-lg font-semibold mb-6">{question.question}</p>
+        <p className="text-white text-lg font-semibold mb-4">{question.question}</p>
+        
+        {/* Hint Section */}
+        {!submitted && (
+          <div className="mb-6">
+            {!showHint ? (
+              <button 
+                onClick={() => {
+                  setShowHint(true);
+                  playSound('click');
+                }}
+                className="text-yellow-400 hover:text-yellow-300 text-sm flex items-center gap-1 transition-colors"
+              >
+                <Lightbulb size={16} /> Need a hint?
+              </button>
+            ) : (
+              <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <Lightbulb size={18} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-yellow-200 text-sm">{question.hint}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="space-y-3 mb-6">
           {question.options.map((opt, idx) => {
@@ -351,23 +393,34 @@ const QuizModal = ({ question, onAnswer, playSound }: { question: QuizQuestion, 
             }
 
             return (
-              <button 
-                key={idx} 
-                onClick={() => {
-                  if(!submitted) {
-                    setSelected(idx);
-                    playSound('click');
-                  }
-                }}
-                disabled={submitted}
-                className={btnClass}
-              >
-                <div className="flex items-center justify-between">
-                  <span>{opt}</span>
-                  {submitted && idx === question.correctAnswer && <CheckCircle size={20} className="text-green-400" />}
-                  {submitted && idx === selected && idx !== question.correctAnswer && <XCircle size={20} className="text-red-400" />}
-                </div>
-              </button>
+              <div key={idx}>
+                <button 
+                  onClick={() => {
+                    if(!submitted) {
+                      setSelected(idx);
+                      playSound('click');
+                    }
+                  }}
+                  disabled={submitted}
+                  className={btnClass}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{opt}</span>
+                    {submitted && idx === question.correctAnswer && <CheckCircle size={20} className="text-green-400" />}
+                    {submitted && idx === selected && idx !== question.correctAnswer && <XCircle size={20} className="text-red-400" />}
+                  </div>
+                </button>
+                {/* Show explanation after submission */}
+                {submitted && (idx === selected || idx === question.correctAnswer) && (
+                  <div className={`mt-2 p-3 rounded-lg text-sm ${
+                    idx === question.correctAnswer 
+                      ? 'bg-green-900/30 border border-green-600/30 text-green-100' 
+                      : 'bg-red-900/30 border border-red-600/30 text-red-100'
+                  }`}>
+                    {question.explanations[idx]}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
