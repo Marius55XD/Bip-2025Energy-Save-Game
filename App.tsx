@@ -183,8 +183,8 @@ const TutorialOverlay = ({ step, onNext }: { step: number, onNext: () => void })
       pos: "top-1/4 left-10"
     },
     {
-      title: "Construction & Batteries",
-      text: "Solar/Wind generate power. Batteries are CRITICAL: they store Energy and save you during Blackout events. Don't neglect them!",
+      title: "How Batteries Work",
+      text: "Batteries charge automatically when you produce surplus energy (Gen > Load). They discharge automatically to prevent blackouts when you have a deficit. NOTE: Batteries operate at 100% capacity when new, but drop to 90% efficiency starting the next month.",
       pos: "top-1/3 right-10"
     },
     {
@@ -612,6 +612,12 @@ const LeaderboardScreen = ({ data, onBack }: { data: LeaderboardEntry[], onBack:
   );
 };
 
+// --- HELPER: Safe Number ---
+const safeNum = (val: any) => {
+    if (typeof val !== 'number' || isNaN(val) || !isFinite(val)) return 0;
+    return val;
+};
+
 // --- MAIN APP ---
 export default function App() {
   const { enabled, setEnabled, playSound } = useAudio();
@@ -657,6 +663,13 @@ export default function App() {
         setLeaderboard(DEFAULT_LEADERBOARD);
      }
   }, []);
+  
+  // Sanitize battery charge on mount/update to prevent NaN
+  useEffect(() => {
+    if (isNaN(state.batteryCharge)) {
+      setState(s => ({...s, batteryCharge: 0}));
+    }
+  }, [state.batteryCharge]);
 
   const saveScore = (name: string) => {
      const newEntry: LeaderboardEntry = {
@@ -770,28 +783,27 @@ export default function App() {
         val *= globalModifiers.loadReduction;
       } else if (def.type === 'store') {
         // Battery Logic
-        
-        // Calculate age in months. Default to current month if undefined to prevent errors.
-        const builtMonth = item.builtMonth ?? month;
+        // Explicitly check for builtMonth existence. If missing, assume new (current month).
+        const builtMonth = typeof item.builtMonth === 'number' ? item.builtMonth : month;
         const age = month - builtMonth;
         
-        // FIX: Capacity is 100% in the month it is built (age 0).
-        // 10% efficiency loss applies from month 1 onwards (age > 0).
+        // 100% capacity in the first month (age 0).
+        // 90% capacity in subsequent months (age > 0).
         if (age > 0) {
-           val *= 0.9;
-        }
+           val *= 0.9; // 10% wear-in / operational loss
+           
+           // Apply Winter Penalty only if older than 1 month
+           if (season.name === 'Winter') val *= 0.9;
 
-        // Winter Penalty (Physics: cold reduces effective chemical capacity)
-        if (season.name === 'Winter') val *= 0.9;
-        
-        // Long term degradation after 1 year
-        if (age > 12) {
-           val *= Math.max(0.5, 1 - ((age - 12) * 0.02));
+           // Long term degradation after 1 year
+           if (age > 12) {
+             val *= Math.max(0.5, 1 - ((age - 12) * 0.02));
+           }
         }
       }
 
       // SAFETY: Ensure val is not NaN
-      if (isNaN(val)) return 0;
+      if (typeof val !== 'number' || isNaN(val) || !isFinite(val)) return 0;
 
       return val;
   };
@@ -923,7 +935,7 @@ export default function App() {
     let usedEnergy = 0;
 
     // Safety: Ensure totalCapacity is not NaN
-    const safeCapacity = isNaN(totalCapacity) ? 0 : totalCapacity;
+    const safeCapacity = safeNum(totalCapacity);
 
     if (balance > 0) {
         // Surplus: Charge Battery
@@ -1592,7 +1604,7 @@ export default function App() {
                      <div className="flex justify-between text-xs">
                         <span className="text-blue-300 font-bold flex items-center gap-1"><BatteryCharging size={12} /> STORAGE</span>
                         <span className="text-blue-300">
-                          {Math.round(isNaN(state.batteryCharge) ? 0 : state.batteryCharge)} / {Math.round(isNaN(calculateStats.totalCapacity) ? 0 : calculateStats.totalCapacity)} kWh
+                            {Math.round(safeNum(state.batteryCharge))} / {Math.round(safeNum(calculateStats.totalCapacity))} kWh
                         </span>
                      </div>
                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600">
