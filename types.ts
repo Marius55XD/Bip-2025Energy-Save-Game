@@ -111,4 +111,13 @@ export interface GameState {
   tutorialStep: number; // 0 = off, 1+ = active steps
   soundEnabled: boolean;
   usedQuizIds: number[];
+  
+  // Loan System
+  activeLoan: {
+    amount: number;
+    interestRate: number;
+    monthlyPayment: number;
+    remainingMonths: number;
+  } | null;
+  availableLoans: number; // Max 3 loans per game
 }

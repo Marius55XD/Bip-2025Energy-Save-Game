@@ -217,6 +217,103 @@ const TutorialOverlay = ({ step, onNext }: { step: number, onNext: () => void })
   );
 };
 
+// --- COMPONENT: LOAN MODAL ---
+const LoanModal = ({ state, onClose, onTakeLoan, playSound, LOAN_OPTIONS }: { 
+  state: GameState, 
+  onClose: () => void, 
+  onTakeLoan: (loanIndex: number) => void,
+  playSound: any,
+  LOAN_OPTIONS: { name: string, amount: number, interestRate: number, months: number }[]
+}) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="bg-slate-900 border-2 border-yellow-500/50 rounded-2xl max-w-md w-full shadow-[0_0_50px_rgba(234,179,8,0.3)] overflow-hidden">
+        <div className="bg-slate-800 p-4 border-b border-slate-700">
+          <h2 className="text-xl font-tech text-center tracking-widest text-yellow-400">EMERGENCY LOANS</h2>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {state.activeLoan ? (
+            <div className="space-y-3">
+              <div className="bg-slate-800/50 p-4 rounded-lg border border-yellow-600/30">
+                <h3 className="text-sm font-bold text-yellow-400 mb-2">Active Loan</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Monthly Payment:</span>
+                    <span className="text-red-400 font-bold">${state.activeLoan.monthlyPayment}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Remaining Months:</span>
+                    <span className="text-yellow-400 font-bold">{state.activeLoan.remainingMonths}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 italic">You must pay off your current loan before taking another.</p>
+            </div>
+          ) : state.availableLoans > 0 ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-300">
+                Get quick cash to expand your grid. Choose a loan option:
+              </p>
+              <div className="text-base font-bold text-yellow-400 mb-3 bg-yellow-900/20 p-2 rounded border border-yellow-600/30 text-center">
+                {state.availableLoans} loan{state.availableLoans > 1 ? 's' : ''} remaining this game
+              </div>
+              {LOAN_OPTIONS.map((loan, idx) => {
+                const totalInterest = loan.amount * loan.interestRate;
+                const totalRepayment = loan.amount + totalInterest;
+                const monthlyPayment = Math.ceil(totalRepayment / loan.months);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => { onTakeLoan(idx); onClose(); }}
+                    className="w-full bg-slate-700 hover:bg-slate-600 border-2 border-yellow-600/30 hover:border-yellow-500 rounded-lg p-4 text-left transition-all"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-lg font-bold text-white">{loan.name}</span>
+                      <span className="text-xl text-green-400 font-bold">+${loan.amount}</span>
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-300">
+                      <div className="flex justify-between">
+                        <span>Monthly Payment:</span>
+                        <span className="font-bold">${monthlyPayment}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Duration:</span>
+                        <span>{loan.months} months</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Interest:</span>
+                        <span className="text-yellow-300">{(loan.interestRate * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              <p className="text-xs text-gray-400 italic mt-2">
+                💡 Forgiving rates with auto-deduction each month
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-lg text-gray-400 mb-2">No loans available</p>
+              <p className="text-sm text-gray-500">You've reached the maximum of 3 loans per game</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 bg-slate-800/50 border-t border-slate-700">
+          <button 
+            onClick={onClose} 
+            className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-colors"
+          >
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- COMPONENT: QUIZ MODAL ---
 const QuizModal = ({ question, onAnswer, playSound }: { question: QuizQuestion, onAnswer: (correct: boolean) => void, playSound: any }) => {
   const [selected, setSelected] = useState<number | null>(null);
@@ -431,10 +528,16 @@ const MonthlyReport = ({ state, onContinue, playSound, showToast }: { state: Gam
                  </span>
               </div>
             )}
+            {state.activeLoan && (
+              <div className="flex justify-between text-orange-400">
+                <span>Loan Payment</span>
+                <span>-${state.activeLoan.monthlyPayment}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-slate-700 pt-2 text-lg font-bold">
               <span>Ending Balance</span>
-              <span className={state.credits + net + (state.quizResult?.reward || 0) < 0 ? "text-red-500" : "text-white"}>
-                ${state.credits + net + (state.quizResult?.reward || 0)}
+              <span className={state.credits + net + (state.quizResult?.reward || 0) - (state.activeLoan?.monthlyPayment || 0) < 0 ? "text-red-500" : "text-white"}>
+                ${state.credits + net + (state.quizResult?.reward || 0) - (state.activeLoan?.monthlyPayment || 0)}
               </span>
             </div>
           </div>
@@ -646,6 +749,7 @@ export default function App() {
 
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showHelp, setShowHelp] = useState(false);
+  const [showLoanModal, setShowLoanModal] = useState(false);
   const [toast, setToast] = useState<{msg: string, type: 'info' | 'success' | 'error'} | null>(null);
   
   // Track global modifiers from events
@@ -914,12 +1018,14 @@ export default function App() {
       month: 1,
       gridItems: initialItems,
       gridSize: size,
-      weather: WEATHER_TYPES[0],
+      weather: WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)],
       synergyActive: false,
       inspectedItemId: null,
       tutorialStep: isTutorial ? 1 : 0,
       usedQuizIds: [],
-      batteryCharge: 0
+      batteryCharge: 0,
+      activeLoan: null,
+      availableLoans: 3
     }));
   };
 
@@ -1025,17 +1131,31 @@ export default function App() {
       nextCredits += (income - upkeep);
       nextScore += rating; // Full rating points
 
-      // 2. Apply Quiz Reward
+      // 2. Apply Quiz Reward BEFORE event costs
       if (prev.quizResult?.correct) {
         nextCredits += prev.quizResult.reward;
       }
 
-      // 3. Apply Event Choice (Instant Effects)
+      // 3. Deduct Loan Payment (if active)
+      let nextLoan = prev.activeLoan;
+      if (prev.activeLoan) {
+        nextCredits -= prev.activeLoan.monthlyPayment;
+        const remainingMonths = prev.activeLoan.remainingMonths - 1;
+        if (remainingMonths <= 0) {
+          nextLoan = null; // Loan paid off
+        } else {
+          nextLoan = { ...prev.activeLoan, remainingMonths };
+        }
+      }
+
+      // 4. Apply Event Choice (using credits AFTER quiz bonus and loan payment)
       let destructionId: string | null = null;
       if (choiceIndex !== undefined && prev.pendingEvent) {
          const evt = prev.pendingEvent;
          const opt = evt.options[choiceIndex];
-         const effect = opt.effect(prev);
+         // Pass updated state with new credits for event calculation
+         const stateWithUpdatedCredits = { ...prev, credits: nextCredits };
+         const effect = opt.effect(stateWithUpdatedCredits);
          
          if (effect.credits !== undefined) nextCredits = effect.credits;
          if (effect.score !== undefined) nextScore = effect.score;
@@ -1069,7 +1189,7 @@ export default function App() {
       // Prevent negative score
       nextScore = Math.max(0, nextScore);
 
-      // 4. Check End Game Conditions
+      // 5. Check End Game Conditions
       if (nextCredits < 0) {
         playSound('fail');
         return { ...prev, screen: 'gameover', credits: nextCredits, score: nextScore };
@@ -1079,7 +1199,7 @@ export default function App() {
         return { ...prev, screen: 'victory', credits: nextCredits, score: nextScore };
       }
 
-      // 5. Advance Month
+      // 6. Advance Month
       const nextMonth = prev.month + 1;
       const nextWeather = WEATHER_TYPES[Math.floor(Math.random() * WEATHER_TYPES.length)];
       
@@ -1096,6 +1216,7 @@ export default function App() {
         score: nextScore,
         weather: nextWeather,
         gridItems: nextGridItems,
+        activeLoan: nextLoan,
         pendingEvent: null,
         currentQuiz: null,
         lastMonthStats: null,
@@ -1245,6 +1366,46 @@ export default function App() {
     showToast(`Upgrade sold for $${refund}`, 'success');
   };
 
+  // Loan System
+  const LOAN_OPTIONS = [
+    { name: 'Small Loan', amount: 1000, interestRate: 0.05, months: 4 }, // 5% total interest over 4 months
+    { name: 'Medium Loan', amount: 2000, interestRate: 0.08, months: 6 }, // 8% total interest over 6 months
+    { name: 'Large Loan', amount: 3500, interestRate: 0.12, months: 8 }, // 12% total interest over 8 months
+  ];
+
+  const takeLoan = (loanIndex: number) => {
+    if (state.activeLoan) {
+      showToast('⚠️ Pay off current loan first!', 'error');
+      playSound('error');
+      return;
+    }
+    if (state.availableLoans <= 0) {
+      showToast('⚠️ No more loans available!', 'error');
+      playSound('error');
+      return;
+    }
+
+    const loan = LOAN_OPTIONS[loanIndex];
+    const totalInterest = loan.amount * loan.interestRate;
+    const totalRepayment = loan.amount + totalInterest;
+    const monthlyPayment = Math.ceil(totalRepayment / loan.months);
+
+    setState(prev => ({
+      ...prev,
+      credits: prev.credits + loan.amount,
+      activeLoan: {
+        amount: loan.amount,
+        interestRate: loan.interestRate,
+        monthlyPayment,
+        remainingMonths: loan.months
+      },
+      availableLoans: prev.availableLoans - 1
+    }));
+
+    playSound('cash');
+    showToast(`💰 Loan approved! +$${loan.amount}`, 'success');
+  };
+
   const renderGridIcon = (type: ElementType) => {
      switch(type) {
         case 'solar': return <Sun className="text-yellow-400 animate-spin-slow" size={32} />;
@@ -1365,9 +1526,18 @@ export default function App() {
               </div>
               <div className="h-8 w-px bg-slate-700 mx-2"></div>
               <div className="flex items-center gap-6 text-sm font-bold">
-                 <div className="flex flex-col">
-                    <span className="text-xs text-gray-500">CREDITS</span>
-                    <span className={state.credits < 500 ? "text-red-400" : "text-green-400"}>${state.credits}</span>
+                 <div className="flex items-center gap-2">
+                   <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">CREDITS</span>
+                      <span className={`text-2xl font-bold ${state.credits < 500 ? "text-red-400" : "text-green-400"}`}>${state.credits}</span>
+                   </div>
+                   <button
+                     onClick={() => { setShowLoanModal(true); playSound('click'); }}
+                     className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+                     title="Get a loan"
+                   >
+                     <DollarSign size={14} /> Loan
+                   </button>
                  </div>
                  <div className="flex flex-col">
                     <span className="text-xs text-gray-500">SCORE</span>
@@ -1377,6 +1547,12 @@ export default function App() {
                     <span className="text-xs text-gray-500">DATE</span>
                     <span className="text-white">Month {state.month}/12</span>
                  </div>
+                 {state.activeLoan && (
+                   <div className="flex flex-col border-l border-slate-700 pl-4">
+                     <span className="text-xs text-gray-500">LOAN PAYMENT</span>
+                     <span className="text-orange-400">${state.activeLoan.monthlyPayment}/mo</span>
+                   </div>
+                 )}
               </div>
             </div>
 
@@ -1512,6 +1688,27 @@ export default function App() {
                       <div className="text-[10px] text-purple-200 ml-5">Solar + Wind = +10% total gen</div>
                     </div>
                   )}
+                  
+                  {/* Visual Guide - Only show in tutorial */}
+                  {state.tutorialStep >= 1 && state.selectedTool && state.selectedTool !== 'delete' && ELEMENTS[state.selectedTool]?.type === 'gen' && (
+                    <div className="mt-2 pt-2 border-t border-blue-500/30 bg-blue-900/20 -mx-2 px-2 py-1 rounded">
+                      <div className="text-[10px] font-bold text-blue-300 mb-1">Placement Guide:</div>
+                      <div className="space-y-0.5 text-[9px] text-gray-300">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded"></div>
+                          <span>High efficiency</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-yellow-500 rounded"></div>
+                          <span>Normal efficiency</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-red-500 rounded"></div>
+                          <span>Low efficiency</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1529,6 +1726,76 @@ export default function App() {
                         backgroundSize: `${cellSize}px ${cellSize}px`
                       }} 
                  />
+                 
+                 {/* SYNERGY VISUALIZATION OVERLAY */}
+                 {state.selectedTool && state.selectedTool !== 'delete' && ELEMENTS[state.selectedTool]?.type === 'gen' && (
+                   <div className="absolute inset-0 pointer-events-none z-10 bg-blue-500/10">
+                     {Array.from({ length: state.gridSize * state.gridSize }).map((_, idx) => {
+                       const x = idx % state.gridSize;
+                       const y = Math.floor(idx / state.gridSize);
+                       
+                       // Check if cell is occupied
+                       const isOccupied = state.gridItems.some(i => {
+                         const iDef = ELEMENTS[i.type];
+                         const iW = iDef.width || 1;
+                         const iH = iDef.height || 1;
+                         return x >= i.x && x < i.x + iW && y >= i.y && y < i.y + iH;
+                       });
+                       
+                       if (isOccupied) return null;
+                       
+                       // Calculate synergy score for this position
+                       let synergyScore = 1.0; // Base multiplier
+                       const neighbors = state.gridItems.filter(i => {
+                         const dist = Math.abs(i.x - x) + Math.abs(i.y - y);
+                         return dist === 1; // Adjacent cells only
+                       });
+                       
+                       if (state.selectedTool === 'solar') {
+                         // Solar benefits from adjacent solar, penalized by apartments/offices
+                         const adjacentSolar = neighbors.filter(n => n.type === 'solar').length;
+                         const adjacentBuildings = neighbors.filter(n => n.type === 'apartment' || n.type === 'office').length;
+                         synergyScore += (adjacentSolar * 0.1) - (adjacentBuildings * 0.1);
+                       } else if (state.selectedTool === 'wind') {
+                         // Wind benefits from isolation, penalized by other wind/apartments
+                         const hasNeighbors = neighbors.length > 0;
+                         const hasWindOrBuildings = neighbors.some(n => n.type === 'wind' || n.type === 'apartment');
+                         if (!hasNeighbors) synergyScore += 0.1;
+                         if (hasWindOrBuildings) synergyScore -= 0.2;
+                       }
+                       
+                       // Convert score to color (red = bad, yellow = neutral, green = good)
+                       let color = 'rgba(100, 100, 100, 0.3)'; // Default gray
+                       if (synergyScore > 1.05) {
+                         const intensity = Math.min((synergyScore - 1.0) * 3, 1);
+                         color = `rgba(34, 197, 94, ${0.3 + intensity * 0.4})`; // Green - more opaque
+                       } else if (synergyScore < 0.95) {
+                         const intensity = Math.min((1.0 - synergyScore) * 3, 1);
+                         color = `rgba(239, 68, 68, ${0.3 + intensity * 0.4})`; // Red - more opaque
+                       } else {
+                         color = 'rgba(234, 179, 8, 0.25)'; // Yellow (neutral) - more visible
+                       }
+                       
+                       return (
+                         <div
+                           key={`synergy-${idx}`}
+                           className="absolute"
+                           style={{
+                             width: cellSize,
+                             height: cellSize,
+                             left: x * cellSize,
+                             top: y * cellSize,
+                             backgroundColor: color,
+                             border: synergyScore > 1.05 ? '2px solid rgba(34, 197, 94, 0.8)' : 
+                                     synergyScore < 0.95 ? '2px solid rgba(239, 68, 68, 0.8)' : 
+                                     '2px solid rgba(234, 179, 8, 0.5)',
+                             boxSizing: 'border-box'
+                           }}
+                         />
+                       );
+                     })}
+                   </div>
+                 )}
                  
                  {/* WIRES LAYER - Minimum Spanning Tree Logic */}
                  <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-60">
@@ -1659,11 +1926,13 @@ export default function App() {
             </div>
 
             {/* SIDEBAR */}
-            <div className="w-80 bg-slate-900/95 backdrop-blur border-l border-slate-700 flex flex-col z-20">
+            <div className="w-96 bg-slate-900/95 backdrop-blur border-l border-slate-700 flex flex-col z-20">
               
               {/* METRICS */}
               <div className="p-4 border-b border-slate-700 bg-slate-800/30">
-                <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase">Real-time Load Balance</h3>
+                <h3 className="text-sm font-bold text-blue-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <Activity size={16} /> Real-time Load Balance
+                </h3>
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
@@ -1684,12 +1953,12 @@ export default function App() {
                         // The rest is Gen
                       />
                     </div>
-                    <div className="flex justify-between text-xs font-mono">
-                      <span>{Math.round(calculateStats.totalLoad)} kW</span>
-                      <span className={calculateStats.totalGen >= calculateStats.totalLoad ? "text-green-400" : "text-red-400"}>
+                    <div className="flex justify-between text-sm font-mono font-bold">
+                      <span className="text-red-400">{Math.round(calculateStats.totalLoad)} kW</span>
+                      <span className={`text-lg ${calculateStats.totalGen >= calculateStats.totalLoad ? "text-green-400" : "text-red-400"}`}>
                         {calculateStats.totalGen >= calculateStats.totalLoad ? "+" : ""}{Math.round(calculateStats.totalGen - calculateStats.totalLoad)} kW
                       </span>
-                      <span>{Math.round(calculateStats.totalGen)} kW</span>
+                      <span className="text-green-400">{Math.round(calculateStats.totalGen)} kW</span>
                     </div>
                   </div>
 
@@ -1758,9 +2027,7 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* ACTION */}
+              </div>              {/* ACTION */}
               <div className="p-4 border-t border-slate-700 bg-slate-800/50">
                 <button 
                   onClick={() => { playSound('click'); handleNextMonth(); }}
@@ -1777,6 +2044,16 @@ export default function App() {
 
       {/* --- MODALS & OVERLAYS --- */}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      
+      {showLoanModal && (
+        <LoanModal 
+          state={state}
+          onClose={() => setShowLoanModal(false)}
+          onTakeLoan={takeLoan}
+          playSound={playSound}
+          LOAN_OPTIONS={LOAN_OPTIONS}
+        />
+      )}
       
       {state.screen === 'game' && state.inspectedItemId && (
         <UpgradeModal 
