@@ -1422,6 +1422,100 @@ export default function App() {
               <p className="text-sm text-gray-300 italic">"{state.weather.tip}"</p>
             </div>
 
+            {/* PRODUCTION BREAKDOWN & SYNERGY GUIDE */}
+            <div className="absolute top-32 left-6 z-30 bg-slate-900/90 backdrop-blur border border-slate-600 rounded-xl shadow-2xl max-w-xs animate-fade-in select-none space-y-3">
+              
+              {/* Production Breakdown */}
+              <div className="p-4 border-b border-slate-600">
+                <h3 className="text-xs font-bold text-green-400 mb-2 uppercase tracking-widest flex items-center gap-1">
+                  <Zap size={12} /> Energy Production
+                </h3>
+                <div className="space-y-1.5">
+                  {(() => {
+                    // Calculate totals per generator type
+                    const genTypes = ['solar', 'wind', 'hydro', 'thermo', 'geothermal'] as const;
+                    const totals = genTypes.map(type => {
+                      const items = state.gridItems.filter(item => item.type === type);
+                      const total = items.reduce((sum, item) => {
+                        return sum + calculateItemStats(item, state.gridItems, state.weather, state.month, globalModifiers);
+                      }, 0);
+                      return { type, total, count: items.length };
+                    }).filter(t => t.count > 0);
+
+                    return totals.length > 0 ? totals.map(({ type, total, count }) => (
+                      <div key={type} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300 flex items-center gap-1.5">
+                          <span className="text-base">{ELEMENTS[type].icon}</span>
+                          <span>{ELEMENTS[type].name}</span>
+                          <span className="text-gray-500">×{count}</span>
+                        </span>
+                        <span className="font-bold text-green-400">{Math.round(total)} kW</span>
+                      </div>
+                    )) : (
+                      <div className="text-xs text-gray-500 italic">No generators built</div>
+                    );
+                  })()}
+                  
+                  {calculateStats.totalGen > 0 && (
+                    <div className="pt-1.5 mt-1.5 border-t border-slate-700 flex justify-between text-xs font-bold">
+                      <span className="text-white">TOTAL GENERATION</span>
+                      <span className="text-green-400">{Math.round(calculateStats.totalGen)} kW</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Synergy Guide */}
+              <div className="p-4">
+                <h3 className="text-xs font-bold text-purple-400 mb-2 uppercase tracking-widest flex items-center gap-1">
+                  <Star size={12} /> Synergy Bonuses
+                </h3>
+                <div className="space-y-2 text-xs text-gray-300">
+                  <div className="space-y-1">
+                    <div className="flex items-start gap-2">
+                      <span className="text-yellow-400 shrink-0">☀️</span>
+                      <div className="flex-1">
+                        <div className="font-bold text-white">Solar Panels</div>
+                        <div className="text-[10px] text-green-400">+10% per adjacent solar</div>
+                        <div className="text-[10px] text-red-400">-10% near apartments/offices</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-start gap-2">
+                      <span className="text-cyan-400 shrink-0">💨</span>
+                      <div className="flex-1">
+                        <div className="font-bold text-white">Wind Turbines</div>
+                        <div className="text-[10px] text-green-400">+10% when isolated</div>
+                        <div className="text-[10px] text-red-400">-20% near wind/apartments</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-400 shrink-0">💧</span>
+                      <div className="flex-1">
+                        <div className="font-bold text-white">Hydro Turbines</div>
+                        <div className="text-[10px] text-green-400">+20% during rain</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {calculateStats.synergyActive && (
+                    <div className="mt-2 pt-2 border-t border-purple-500/30 bg-purple-900/20 -mx-2 px-2 py-1 rounded">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-purple-400">⚡</span>
+                        <span className="font-bold text-purple-300">Hybrid Bonus Active!</span>
+                      </div>
+                      <div className="text-[10px] text-purple-200 ml-5">Solar + Wind = +10% total gen</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* MAP AREA */}
             <div className="flex-1 relative bg-[#0B1120] flex items-center justify-center overflow-auto p-8 cursor-grab active:cursor-grabbing grid-scroll">
                <div 
